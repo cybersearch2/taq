@@ -1,0 +1,14 @@
+resource data_consumer : "sort_cities" 
+  (database="db/sorted-cities", type="H2") {}
+
+scope cities_sql(provider = "city.CityProvider") {
+  function print(string resource_name)
+}
+
+flow report
+(
+  print("\nExported cities:\n"),
+  cities_sql.print("sort_cities")
+)
+
+query show_cities(report)

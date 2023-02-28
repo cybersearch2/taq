@@ -1,0 +1,4 @@
+customer_freight(name=Acropolis Construction, city=Athens, charge=23.99)
+customer_freight(name=Marathon Marble, city=Sparta, charge=13.99)
+customer_freight(name=Agora Imports, city=Sparta, charge=13.99)
+customer_freight(name=Spiros Theodolites, city=Milos, charge=17.99)

@@ -1,0 +1,23 @@
+// Declare variables in template scope
+// so only their values can be exported
+template high_city
+(
+. city ? elevation > 5000,
+. elevation,
+  term city, term elevation
+)  
+
+query<axiom> high_cities (city_elevation : high_city)
+
+axiom list city_elevation() 
+    {"bilene", 1718}
+    {"addis ababa", 8000}
+    {"denver", 5280}
+    {"flagstaff", 6970}
+    {"jacksonville", 8}
+    {"leadville", 10200}
+    {"madrid", 1305}
+    {"richmond",19}
+    {"spokane", 1909}
+    {"wichita", 1305}  
+

@@ -1,0 +1,15 @@
+include "world_currency.taq"
+
+template total
+(
+  country,
+  currency @ country amount *= 1.1
+)
+
+template format_total
+(
+  currency @ country amount,
+  string total_text = country + " Total + gst: " + amount.format()
+)
+
+query<axiom> price_query(price : total) -> (format_total)

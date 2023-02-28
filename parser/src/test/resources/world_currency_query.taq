@@ -1,0 +1,19 @@
+include "world_currency.taq"
+
+template charge
+(
+  currency @ country amount, 
+  country_code = country
+)
+
+flow charge_plus_gst
+(
+  currency @ country total = amount * 1.1
+)
+
+flow format_total
+(
+  string total_text = charge.country_code + " Total + gst: " + charge_plus_gst.total.format()
+)
+
+query price_query(price : charge) -> (charge_plus_gst) -> (format_total)

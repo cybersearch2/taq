@@ -1,0 +1,9 @@
+flow factorial 
+{  integer i }
+(
+  integer n, // natural number
+  factorial = 1,
+  { ?? (i++ < n) factorial *= i }
+)
+query<term> factorial4 (factorial)(n = 4) 
+query<term> factorial5 (factorial)(n = 5) 

@@ -1,0 +1,2 @@
+factorial4(n=4, factorial=24)
+factorial5(n=5, factorial=120)

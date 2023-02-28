@@ -1,0 +1,39 @@
+
+select sale_bracket
+  ( amount, threshold, base, percent)
+  {
+  ? > 500000: 500000, 21330.00, 5.50
+  ? > 300000: 300000, 11330.00, 5.00
+  ? > 250000: 250000,  8955.00, 4.75
+  ? > 200000: 200000,  6830.00, 4.25
+  ? > 100000: 100000,  2830.00, 4.00
+  ? >  50000:  50000,  1080.00, 3.50
+  ? >  30000:  30000,   480.00, 3.00
+  ? >  12000:  12000,   120.00, 2.00
+  ? >   5000:      0,     0.00, 1.00
+  }
+
+flow stamp_duty_payable
+{ currency.USD amount }
+(
+. duty = currency.USD 20.00,
+. flow sale_bracket(amount) {
+    duty = base + (amount - threshold) *
+            (percent / 100)
+  },
+  term id,
+  amount.format(),
+  bracket = sale_bracket.index() + 1,
+  string payable = duty.format()
+ )
+
+query<axiom> stamp_duty_query (transaction_amount : stamp_duty_payable)
+
+axiom list transaction_amount 
+  ( id,     amount     )
+  { 100077,    3789.00 }
+  { 100078,  123458.00 }
+  { 100079,   55876.33 }
+  { 100080, 1245890.00 }
+  
+

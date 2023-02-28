@@ -1,0 +1,3 @@
+shade(rgb=65535, color=aqua, red=0, green=255, blue=255, index=0)
+shade(rgb=255, color=blue, red=0, green=0, blue=255, index=2)
+shade(rgb=7864319, color=unknown, red=0, green=0, blue=0, index=4)

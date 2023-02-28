@@ -1,0 +1,39 @@
+flow pets
+{ export list<string> pet_names }
+(
+  cursor<axiom> pet(pet_data),
+  {
+    ? fact pet,
+    pet_names += pet->name,
+    pet++
+  }
+)
+
+flow reverse_pets
+{ export list<string> pet_names }
+(
+  reverse cursor<axiom> pet(pet_data),
+  {
+     ? fact pet,
+     pet_names += pet->name,
+     pet--
+  }
+)
+
+axiom list pet_data(species, name, color)
+{ "dog", "Lassie", "blonde" }
+{ "cat", "Cuddles", "tortoise" }
+{ "Dog", "Bruiser", "brindle" } 
+{ "Dog", "Rex", "black and tan" }
+{ "Cat", "Pixie", "black" }
+{ "dog", "Axel", "white" }
+{ "Cat", "Amiele", "ginger" }
+{ "dog", "Fido", "brown" }
+
+query pets(list pet_data : pets)
+
+query reverse_pets(list pet_data : reverse_pets)
+
+
+
+

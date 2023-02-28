@@ -1,0 +1,34 @@
+$ list<term> colors
+
+scope german (
+  language="de",
+  region="DE", 
+  background=3, 
+  foreground=2)
+
+axiom german.colors (aqua, black, blue, white)
+  {"Wasser", "schwarz", "blau", "weiß"}
+
+flow german_palette
+{ 
+  select color
+  ( colors, r, g, b, tag )
+  {
+    ? aqua: 0, 255, 255
+    ? black: 0, 0, 0
+    ? blue: 0, 0, 255
+    ? white: 255, 255, 255
+  }
+}
+(
+  term color1,
+  term color2,
+. flow color(shade=colors[scope->background], tag="background")
+    { color1 = color },
+. flow color(shade=colors[scope->foreground], tag="foreground")
+    { color2 = color }
+)
+
+query<term> colors (german.german_palette)
+
+

@@ -1,0 +1,65 @@
+list<string> aries_traits = {
+  "courageous", "determined", "confident"
+}
+list<string> taurus_traits = {
+  "reliable", "patient", "practical"
+}
+list<string> gemini_traits = {
+  "gentle", "affectionate", "curious"
+}
+list<string> cancer_traits = {
+  "tenacious", "highly imaginative", "loyal"
+}
+list<string> leo_traits = {
+  "creative", "passionate", "generous"
+}
+list<string> virgo_traits = {
+  "loyal", "analytical", "kind"
+}
+list<string> libra_traits = {
+  "cooperative", "diplomatic", "gracious"
+}
+list<string> scorpio_traits = {
+  "resourceful", "brave", "passionate"
+}
+list<string> sagittarius_traits = {
+  "generous", "idealistic", "great sense of humor"
+}
+list<string> capricorn_traits = {
+  "responsible", "disciplined", "self-control"
+}
+list<string> aquarius_traits = {
+  "progressive", "original", "independent"
+}
+list<string> pisces_traits = {
+  "compassionate", "artistic", "intuitive"
+}
+
+list<axiom> person 
+  (name, sex, age, starsign, traits)
+  {"John", "m", 23, "Gemini", list gemini_traits} 
+  {"Sue", "f", 19, "Cancer", list cancer_traits} 
+  {"Sam", "m", 34, "Scorpio", list scorpio_traits} 
+  {"Jenny", "f", 28, "Gemini", list gemini_traits} 
+  {"Andrew", "m", 26, "Virgo", list virgo_traits} 
+  {"Alice", "f", 20, "Pisces", list pisces_traits} 
+  {"Ingrid", "f", 23, "Cancer", list cancer_traits} 
+  {"Jack", "m", 32, "Pisces", list pisces_traits} 
+  {"Sonia", "f", 33, "Gemini", list gemini_traits} 
+  {"Alex", "m", 22, "Aquarius", list aquarius_traits} 
+  {"Jill", "f", 33, "Cancer", list cancer_traits} 
+  {"Fiona", "f", 29, "Gemini", list gemini_traits} 
+  {"Melissa", "f", 30, "Virgo", list virgo_traits} 
+  {"Tom", "m", 22, "Cancer", list cancer_traits} 
+  {"Bill", "m", 19, "Virgo", list virgo_traits}
+
+
+template name_match
+(
+  name ? name == search_name,
+  age,
+  starsign,
+  list<string> traits
+)
+
+query<axiom> person_search(person:name_match)

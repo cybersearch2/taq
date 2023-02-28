@@ -1,0 +1,5 @@
+megacities(Megacity=Moscow, Country=Russia)
+megacities(Megacity=London, Country=United Kingdom)
+megacities(Megacity=Istanbul, Country=Turkey)
+megacities(Megacity=Rhine-Ruhr, Country=Germany)
+megacities(Megacity=Paris, Country=France)

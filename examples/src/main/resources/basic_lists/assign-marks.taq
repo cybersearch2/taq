@@ -1,0 +1,21 @@
+axiom list grades 
+ ( student, english, maths, history )
+ { "George", 15, 13, 16 }
+ { "Sarah",  12, 17, 15 }
+ { "Amy",    14, 16,  6 }
+ 
+list<string> mark[1,18] = reverse
+{
+  "a+","a","a-","b+","b","b-","c+","c","c-",
+  "d+","d","d-","e+","e","e-","f+","f","f-"
+}
+ 
+template score
+(
+  student, 
+  english = mark[english], 
+  maths = mark[maths], 
+  history = mark[history]
+)
+ 
+query<axiom> marks(grades : score)

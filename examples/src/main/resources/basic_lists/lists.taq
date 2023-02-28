@@ -1,0 +1,56 @@
+list<string> fruit = { "apple", "pear", "orange" }
+
+list<integer> dice = { 2, 5, 1 }
+
+list<double> dimensions = { 12.54, 6.98, 9.12 }
+
+// Long.MAX_VALUE is 9,223,372,036,854,775,807
+list<decimal> huges = { "9,223,372,036,854,775,808", "-9,223,372,036,854,775,808" }
+
+list<boolean> flags = { 1 == 1, 1 == 0 }
+
+axiom bright_stars ( a, b, c )
+  { "Sirius" ,"Canopus", "Rigil Kentaurus" }
+  
+list<axiom> greatest 
+    { "The Godfather", "Francis Ford Coppola"}
+    { "The Shawshank Redemption", "Frank Darabont" }
+    { "Schindler's List", "Steven Spielberg" }
+
+template fruit
+( 
+  fruit[0], fruit[1], fruit[2], size = fruit.size()
+)
+
+template dice
+( 
+  dice[0], dice[1], dice[2], size = dice.size()
+)
+
+template dimensions
+( 
+  dimensions[0], dimensions[1], dimensions[2], size = dimensions.size()
+)
+
+template huges
+( 
+  huges[0], huges[1], size = huges.size()
+)
+
+template flags
+( 
+  flags[0], flags[1], size = flags.size()
+)
+
+template stars
+( 
+  bright_stars[0], bright_stars[1], bright_stars[2], size = bright_stars.size()
+)
+
+template movies
+(
+  movie_1 = greatest[0],
+  movie_2 = greatest[1],
+  movie_3 = greatest[2],
+  size = greatest.size()
+)

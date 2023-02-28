@@ -1,0 +1,10 @@
+/.settings/
+/target/
+/mandibrot/
+
+/pom.xml.releaseBackup
+/pom.xml.tag
+/release.properties
+/bin/
+/.classpath
+/.metadata/

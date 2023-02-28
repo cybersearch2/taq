@@ -1,0 +1,4 @@
+bird=whistling swan, family=swan, color=white, flight=ponderous, voice=muffled musical whistle
+bird=trumpeter swan, family=swan, color=white, flight=ponderous, voice=loud trumpeting
+bird=snow goose, family=goose, color=white, size=plump, flight=powerful, voice=honks
+bird=pintail, family=duck, flight=agile, voice=short whistle

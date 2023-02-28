@@ -1,0 +1,12 @@
+include "mega_city.taq"
+
+template asia_top_ten
+{ integer rank }
+(
+  rank ??
+    Continent == "Asia" && rank++ < 10,
+  term rank,
+  city = Megacity, country = Country, population = Population.format()
+)
+
+query<axiom> asia_top_ten (mega_city : asia_top_ten) 

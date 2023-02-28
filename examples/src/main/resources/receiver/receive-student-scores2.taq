@@ -1,0 +1,50 @@
+axiom list grades 
+  (student, english, maths, history)
+  {"George", 15, 13, 16}
+  {"Sarah", 12, 17, 15}
+  {"Amy", 14, 16, 6}
+
+list<string> alpha_mark =
+{
+   "", // Index = 0 is out of range
+   "f-", "f", "f+", "e-", "e", "e+", "d-", "d", "d+", 
+   "c-", "c", "c+", "b-", "b", "b+", "a-", "a", "a+"
+}
+
+scope school
+{
+  // subjects axiom list is populated directly in the body.
+  flow<term> report
+  { 
+    integer english,
+    integer maths,
+    integer history
+  }
+  (
+    list<axiom> subjects,
+.   subjects += 
+      axiom {subject="english",mark=alpha_mark[english]},
+    subjects += 
+      axiom {subject="maths",mark=alpha_mark[maths]},
+    subjects += 
+      axiom {subject="history",mark=alpha_mark[history]}
+  )
+}
+
+flow score
+{ 
+  string student,
+  export list<axiom> student_marks
+}
+(
+  string report = student,
+  flow school.report(english, maths, history) {
+    cursor<axiom> subjects,
+    list<term> item,
+    { ?? (item = subjects++)
+      report += " " + item->subject + ":"  + item->mark 
+    }},
+  student_marks += axiom { report }
+)
+
+query marks(grades : score)

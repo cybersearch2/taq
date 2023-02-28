@@ -1,0 +1,19 @@
+include "i-words.taq"
+
+pattern in_word "^in[^ ]+"
+pattern defPattern "^[nvaj.]+ (.*+)"
+
+flow in_words 
+{ 
+  string word,
+  string definition
+}
+( 
+  term word,
+  term definition,
+  word # in_word, 
+  ? definition #defPattern ( def )
+    { definition = def }
+)
+
+query<axiom> query_in_words(i_words : in_words)

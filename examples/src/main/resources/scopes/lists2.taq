@@ -1,0 +1,102 @@
+$ list<string> fruit
+$ list<integer> dice
+$ list<double> dimensions
+$ list<decimal> roaches
+$ list<boolean> flags
+$ list<axiom> greatest
+$ list<term> celestial
+
+scope london {
+    list<string> fruit = { "strawberry", "cherry", "peach" }
+	list<integer> dice = { 2, 5, 1 }
+	list<double> dimensions = { 12.54, 6.98, 9.12 }
+	
+	list<decimal> roaches = { "7,372,036,854,775,530" }
+	
+	list<boolean> flags = { true, false }
+	
+	list<axiom> greatest 
+	    { "The Godfather" }
+	    { "The Shawshank Redemption" }
+	    { "Schindler's List" }
+	axiom celestial ( a, b, c )
+	  { "Sirius" ,"Canopus", "Rigil Kentaurus" }
+}
+
+scope new_york {
+    list<string> fruit = { "apple", "pear", "orange" }
+	list<integer> dice = { 6, 6, 6 }
+	list<double> dimensions = { 16.84, 9.08, 11.77 }
+	
+	list<decimal> roaches = { "35,223,372,036,854,775,691" }
+	
+	list<boolean> flags = { false, true }
+	
+	list<axiom> greatest 
+	    { "Star Wars" }
+	    { "Gone With The Wind" }
+	    { "Spider Man" }
+	axiom celestial ( a, b, c )
+	  { "Polarus" ,"Betelgeuse", "Vega" }
+}
+
+flow fruit
+( 
+  fruit[0], fruit[1], fruit[2], size = fruit.size()
+)
+
+flow dice
+( 
+  dice[0], dice[1], dice[2], size = dice.size()
+)
+
+flow dimensions
+( 
+  dimensions[0], dimensions[1], dimensions[2], size = dimensions.size()
+)
+
+flow roaches
+{ 
+  cursor<decimal> item(roaches),
+  decimal count 
+}
+( 
+  count = roaches[0], 
+  count.format(),
+  size = roaches.size()
+)
+
+flow flags
+( 
+  flags[0], flags[1], size = flags.size()
+)
+
+flow stars
+( 
+  celestial[0], celestial[1], celestial[2], size = celestial.size()
+)
+
+flow movies
+(
+  movie_1 = greatest[0],
+  movie_2 = greatest[1],
+  movie_3 = greatest[2],
+  size = greatest.size()
+)
+
+query<term> london_fruit(london.fruit)
+query<term> london_dice(london.dice)
+query<term> london_dimensions(london.dimensions)
+query<term> london_roaches(london.roaches)
+query<term> london_movies(london.movies)
+query<term> london_flags(london.flags)
+query<term> london_stars(london.stars)
+
+query<term> new_york_fruit(new_york.fruit)
+query<term> new_york_dice(new_york.dice)
+query<term> new_york_dimensions(new_york.dimensions)
+query<term> new_york_roaches(new_york.roaches)
+query<term> new_york_movies(new_york.movies)
+query<term> new_york_flags(new_york.flags)
+query<term> new_york_stars(new_york.stars)
+

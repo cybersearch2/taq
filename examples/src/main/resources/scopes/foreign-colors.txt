@@ -1,0 +1,8 @@
+color(shade=Wasser, red=0, green=255, blue=255)
+color(shade=schwarz, red=0, green=0, blue=0)
+color(shade=weiß, red=255, green=255, blue=255)
+color(shade=blau, red=0, green=0, blue=255)
+color(shade=bleu vert, red=0, green=255, blue=255)
+color(shade=noir, red=0, green=0, blue=0)
+color(shade=blanc, red=255, green=255, blue=255)
+color(shade=bleu, red=0, green=0, blue=255)

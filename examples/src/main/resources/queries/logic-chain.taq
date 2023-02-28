@@ -1,0 +1,28 @@
+template customer(name, city, code)
+template account(code ? customer.code, fee)
+template delivery(
+  name = customer.name, city ? customer.city, 
+  fee = account.fee, freight
+)
+		
+query<axiom> greek_business(customer:customer) 
+  -> (code_fee:account) -> (shipping:delivery)
+  
+axiom list customer()
+  {"Marathon Marble", "Sparta", "MRT"}
+  {"Acropolis Construction", "Athens", "ACR"}
+  {"Agora Imports", "Sparta", "AGR"}
+  {"Spiros Theodolites", "Milos", "SPT"}
+        
+axiom list code_fee (code, fee)
+  {"MRT", 61}
+  {"ACR", 47}
+  {"AGR", 49}
+  {"SPT", 57} 
+        
+axiom list shipping (city, freight) 
+  {"Athens", 5 }
+  {"Sparta", 16 }
+  {"Milos", 22}
+        
+  

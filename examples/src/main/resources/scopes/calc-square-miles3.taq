@@ -1,0 +1,20 @@
+include "surface-land.taq"
+
+scope usa (location = "United States")
+scope australia (location = "Australia")
+
+flow country_area 
+(
+  country ? { "United States" , "Australia" },
+  double surface_area = surface_area_Km2,
+  string units = "km2",
+  ? scope->location == "United States"
+  {
+    surface_area *= 0.3861,
+    units = "mi2"
+  }
+)
+
+query<axiom> au_surface_area_query(surface_area : australia.country_area)
+query<axiom> us_surface_area_query(surface_area : usa.country_area)
+query<axiom> xx_surface_area_query(surface_area : country_area)

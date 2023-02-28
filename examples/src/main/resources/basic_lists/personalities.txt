@@ -1,0 +1,2 @@
+Name: John, Age: 23, Zodiac: Gemini
+Traits: gentle, affectionate, curious

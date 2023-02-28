@@ -1,0 +1,31 @@
+resource agri_area_percent
+(
+  database="db/agri-area-percent1",
+  type="H2"
+)
+{
+}
+
+resource surface_area_increase: "agri_20_year" 
+(
+  provider="agriculture.AgriAxiomProvider",
+  database="db/agri_20_year1",
+  type="H2"
+)
+{
+} 
+
+scope agri20_year1_sql(provider = "agriculture.provider.Agri20Year1Provider") {
+  function print_data(string resource_name)
+  function print_solution(string resource_name)
+}
+
+flow report
+(
+  print("\nCountry, area and percent area under agriculture data points:\n"),
+  agri20_year1_sql.print_data("agri_area_percent"),
+  print("\nCountry, area and increased surface area in square km:\n"),
+  agri20_year1_sql.print_solution("agri_20_year")
+)
+
+query show_more_agriculture(report)

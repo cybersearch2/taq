@@ -1,0 +1,4 @@
+patch(name="inverse_blue", red=255, green=255, blue=0)
+shade(color.red=255, color.green=0, color.blue=0, color.name=inverse_aqua)
+shade(color.red=255, color.green=255, color.blue=255, color.name=inverse_black)
+shade(color.red=255, color.green=255, color.blue=0, color.name=inverse_blue)

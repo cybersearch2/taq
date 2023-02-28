@@ -1,0 +1,19 @@
+complex x = {5.0, 6.0}
+complex y = {-3.0, 4.0}
+flow ops
+(
+  complex z = x.reciprocal(),
+  print(z),
+  z = x * y,
+  print(z),
+  z = x + y,
+  print(z),
+  z = x / y,
+  print(z),
+  z = x - y,
+  print(z),
+  x = x.reciprocal(),
+  print(x)
+)
+query do_ops(ops)
+

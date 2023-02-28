@@ -1,0 +1,65 @@
+$ list<term> locale
+
+scope german (language="de", region="DE")
+{
+  axiom locale
+  ( tax_rate, Total, Tax ) 
+  { 0.18,    "Gesamtkosten", "Steuer" }
+}
+
+scope french (language="fr", region="FR")
+{
+  axiom locale
+  ( tax_rate, Total, Tax ) 
+  { 0.15,    "le total", "impôt" }
+}
+
+scope belgium_fr (language="fr", region="BE")
+{
+  axiom locale
+  ( tax_rate, Total, Tax ) 
+  { 0.11,    "le total", "impôt" }
+}
+
+scope belgium_nl (language="nl", region="BE")
+{
+  axiom locale
+  ( tax_rate, Total, Tax ) 
+  { 0.11,    "totale kosten", "belasting" }
+}
+
+include "locales/item-list.xpl"
+
+template item_amount(string item, string amount)
+
+template charge_plus_tax
+{
+  double percent,
+  string item,
+  currency amount,
+  currency total_amount
+} 
+(
+  percent = locale->tax_rate * 100,
+  total_amount = amount * (1.0 + locale->tax_rate),
+  term scope.locale,
+  term locale->Total + " " + total_amount.format(), 
+  term percent.format() + "% " + locale->Tax 
+)
+
+flow item
+(
+  term item_amount.item,
+  term @german.charge_plus_tax, 
+  term @french.charge_plus_tax, 
+  term @belgium_fr.charge_plus_tax,
+  term @belgium_nl.charge_plus_tax 
+)
+
+query<axiom> item_query
+  (stock : item_amount) ->
+  (german.charge_plus_tax) ->
+  (french.charge_plus_tax) -> 
+  (belgium_fr.charge_plus_tax) ->
+  (belgium_nl.charge_plus_tax) ->
+  (item)

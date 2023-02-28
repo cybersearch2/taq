@@ -1,0 +1,20 @@
+axiom unsorted() {12, 3, 1, 5, 8}
+
+flow insert_sort 
+{ export list<term> sorted = list unsorted }
+(
+. i = 1, 
+  {
+    j = i - 1, 
+    next = sorted[i], 
+    {
+      ? next < sorted[j],
+      sorted[j + 1] = sorted[j],
+      ? --j >= 0
+    },
+    sorted[j + 1] = next,
+    ? fact sorted[++i]
+  }
+)
+
+query sort_axiom (insert_sort)

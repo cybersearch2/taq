@@ -1,0 +1,12 @@
+asia_top_ten(1, city=Tokyo, country=Japan, population=37,900,000)
+asia_top_ten(2, city=Delhi, country=India, population=26,580,000)
+asia_top_ten(3, city=Seoul, country=South Korea, population=26,100,000)
+asia_top_ten(4, city=Shanghai, country=China, population=25,400,000)
+asia_top_ten(5, city=Mumbai, country=India, population=23,920,000)
+asia_top_ten(6, city=Beijing, country=China, population=21,650,000)
+asia_top_ten(7, city=Jakarta, country=Indonesia, population=20,500,000)
+asia_top_ten(8, city=Karachi, country=Pakistan, population=20,290,000)
+asia_top_ten(9, city=Osaka, country=Japan, population=20,260,000)
+asia_top_ten(10, city=Manila, country=Philippines, population=20,040,000)
+
+

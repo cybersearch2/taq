@@ -1,0 +1,31 @@
+axiom list phases()  
+{ 1 }
+{ 2 }                                                                                                                                                                                                           
+
+integer index = 1
+term random = random(1000)
+
+scope one {
+  integer index = index@global
+}
+
+scope two {
+  integer index = index@one + 1
+}
+
+scope three {
+  integer index = index@two + 1
+}
+
+template indexes 
+(
+  phase,
+  term "one " + index@one,
+  term "two " + index@two,
+  term "three " + index@three,
+  term "four " + (index@global += 3),
+  random = random@
+)
+
+query<axiom> first_time(phases : indexes)
+query<axiom> second_time(phases : indexes)

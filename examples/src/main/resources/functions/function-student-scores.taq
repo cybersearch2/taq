@@ -1,0 +1,29 @@
+$ template<axiom> alpha_grades (string subject, string mark)
+
+scope school(provider = "school.SchoolFunctionProvider") {
+   function axiom<alpha_grades>  convert_grades( integer marks... ) 
+}
+
+flow score
+{
+  export list<axiom> student_marks,
+  string student
+}
+(
+  flow school.convert_grades(english, maths, history) {
+    cursor<axiom> convert_grades,
+    list<term> items,
+    string report = student,
+    { ?? (items = convert_grades++)
+      report += " " + items->subject + ":" + items->mark },
+    student_marks += axiom { report }
+  }
+)
+
+query marks(grades : score)
+
+axiom list grades 
+  (student, english, maths, history)
+  {"George", 15, 13, 16}
+  {"Sarah", 12, 17, 15}
+  {"Amy", 14, 16, 6}

@@ -1,0 +1,36 @@
+
+axiom list city (name, altitude) 
+    {"bilene", 1718}
+    {"addis ababa", 8000}
+    {"denver", 5280}
+    {"flagstaff", 6970}
+    {"jacksonville", 8}
+    {"leadville", 10200}
+    {"madrid", 1305}
+    {"richmond",19}
+    {"spokane", 1909}
+    {"wichita", 1305}
+
+list city_list(city)
+
+scope city
+{
+  integer accum=0
+  integer index=0
+  flow average_height(
+  {
+    accum += (city_list[index++.altitude),
+    ? fact city_list[index]
+  },
+  average=accum / index
+  )
+}
+
+flow average_height
+{  receive average_height(average) }
+(
+  query city.average_height() -> average_height,
+  average
+)
+
+query average_height (average_height)

@@ -1,0 +1,45 @@
+axiom list prefix_account 
+  (prefix, account)
+  { "456448", 2 }
+  { "456445", 1 }
+  { "456443", 3 }
+  
+select bank 
+  ( Prefix,  Bank,                       BSB )
+  { 
+  ? "456448": "Bank of Queensland",      "124-001"
+  ? "456443": "Bendigo Bank LTD",        "633-000"
+  ? "456445": "Commonwealth Bank Aust.", "527-146"
+  }
+
+template bank_account
+{
+  integer account
+}
+(
+  prefix,
+. axiom profile = bank(prefix),
+  bank = profile->Bank,
+  bsb = profile->BSB,
+  account_type = 
+    map account 
+    {
+    ? 1: "sav"
+    ? 2: "cre"
+    ? 3: "chq"
+    }
+)
+
+template account_type
+(
+  account_type = 
+    map account 
+    {
+    ? 1: "sav"
+    ? 2: "cre"
+    ? 3: "chq"
+    }
+)
+
+query<axiom> bank_details( prefix_account: bank_account ) 
+query<axiom> account( prefix_account: account_type ) 

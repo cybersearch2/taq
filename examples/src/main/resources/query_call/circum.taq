@@ -1,0 +1,25 @@
+scope math
+{
+  template<term> x_by_factor
+  { 
+    decimal factor,
+    decimal x 
+  }
+  (
+    decimal product = x * factor
+  )
+}
+
+flow radius_by_2pi
+{ 
+  decimal radius
+}
+(
+. decimal pi_times_radius = 
+    math.x_by_factor(pi = decimal 3.14, radius)
+      ->product,
+  circumference = 2 * pi_times_radius
+)
+
+query<term> circumference(radius_by_2pi)
+  

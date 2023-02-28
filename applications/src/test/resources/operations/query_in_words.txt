@@ -1,0 +1,153 @@
+in_words(word=inadequate, definition=j. not sufficient to meet a need)
+in_words(word=incentive, definition=n. a positive motivational influence)
+in_words(
+ word=incidence,
+ definition=n. the relative frequency of occurrence of something
+)
+in_words(word=incident, definition=n. a public disturbance)
+in_words(word=incidentally, definition=a. of a minor or subordinate nature)
+in_words(
+ word=inclined,
+ definition=j. at an angle to the horizontal or vertical position
+)
+in_words(
+ word=incompetence,
+ definition=n. lack of physical or intellectual ability or qualifications
+)
+in_words(word=inconsistent, definition=j. displaying a lack of consistency)
+in_words(
+ word=inconvenient,
+ definition=j. not suited to your comfort, purpose or needs
+)
+in_words(
+ word=indefinitely,
+ definition=a. to an indefinite extent; for an indefinite time
+)
+in_words(
+ word=indicator,
+ definition=n. a device for showing the operating condition of some system
+)
+in_words(
+ word=indifferent,
+ definition=j. showing no care or concern in attitude or action
+)
+in_words(word=indigenous, definition=j. originating where it is found)
+in_words(word=indulge, definition=v. enjoy to excess)
+in_words(
+ word=inefficient,
+ definition=j. not producing desired results; wasteful
+)
+in_words(word=inept, definition=j. generally incompetent and ineffectual)
+in_words(
+ word=inevitable,
+ definition=j. incapable of being avoided or prevented
+)
+in_words(
+ word=inexpensive,
+ definition=j. relatively low in price or charging low prices
+)
+in_words(word=infamous, definition=j. known widely and usually unfavorably)
+in_words(
+ word=infinite,
+ definition=j. having no limits or boundaries in time or space or extent or magnitude
+)
+in_words(
+ word=influence,
+ definition=n. a power to affect persons or events especially power based on prestige etc
+)
+in_words(
+ word=influential,
+ definition=j. having or exercising influence or power
+)
+in_words(word=influx, definition=n. the process of flowing in)
+in_words(word=ingenious, definition=j. showing inventiveness and skill)
+in_words(
+ word=inherent,
+ definition=j. in the nature of something though not readily apparent
+)
+in_words(
+ word=injunction,
+ definition=n.  {law } a judicial remedy issued in order to prohibit a party from doing or continuing to do a certain activity
+)
+in_words(word=inland, definition=a. towards or into the interior of a region)
+in_words(
+ word=insight,
+ definition=n. the clear  {and often sudden } understanding of a complex situation
+)
+in_words(
+ word=insistence,
+ definition=n. the state of demanding notice or attention
+)
+in_words(word=inspector, definition=n. a high ranking police officer)
+in_words(word=instance, definition=n. an occurrence of something)
+in_words(word=instant, definition=n. a very short time)
+in_words(
+ word=insufficient,
+ definition=j. of a quantity not able to fulfill a need or requirement
+)
+in_words(
+ word=integral,
+ definition=j. essential to completeness; lacking nothing
+)
+in_words(word=integrity, definition=n. moral soundness)
+in_words(word=intellectual, definition=j. appealing to or using the intellect)
+in_words(
+ word=intelligence,
+ definition=n. the ability to comprehend; to understand and profit from experience
+)
+in_words(
+ word=intensive,
+ definition=j. characterized by a high degree or intensity; often used as a combining form
+)
+in_words(
+ word=intention,
+ definition=n. an act of intending; a volition that you intend to carry out
+)
+in_words(
+ word=interact,
+ definition=v. act together or towards others or with others
+)
+in_words(
+ word=interim,
+ definition=n. the time between one event, process, or period and another
+)
+in_words(
+ word=intermediate,
+ definition=j. lying between two extremes in time or space or state
+)
+in_words(
+ word=intervene,
+ definition=v. get involved, so as to alter or hinder an action, or through force or threat of force
+)
+in_words(
+ word=intervention,
+ definition=n. the act of intervening  {as to mediate a dispute, etc. }
+)
+in_words(word=intimacy, definition=n. close or warm friendship)
+in_words(
+ word=intricate,
+ definition=j. having many complexly arranged elements; elaborate
+)
+in_words(
+ word=invasion,
+ definition=n. any entry into an area not previously occupied
+)
+in_words(
+ word=inventive,
+ definition=j.  {used of persons or artifacts } marked by independence and creativity in thought or action
+)
+in_words(
+ word=investigator,
+ definition=n. a police officer who investigates crimes
+)
+in_words(
+ word=investor,
+ definition=n. someone who commits capital in order to gain financial returns
+)
+in_words(word=invincible, definition=j. incapable of being overcome or subdued)
+in_words(word=invoke, definition=v. cite as an authority; resort to)
+in_words(
+ word=involuntary,
+ definition=j. not subject to the control of the will
+)
+in_words(word=involve, definition=v. engage as a participant)

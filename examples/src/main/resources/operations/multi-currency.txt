@@ -1,0 +1,104 @@
+MY Total + gst: MYR10,682.12
+QA Total + gst: ٥٤٥٫٨١ QAR
+IS Total + gst: 510 ISK
+FI Total + gst: 5 362,50 EUR
+MT Total + gst: EUR3,061.34
+CH Total + gst: CHF 1’390,41
+BE Total + gst: EUR 4.355,05
+SA Total + gst: ١٠٬٥٠٥٫١٣ SAR
+IQ Total + gst: IQD ۲٬۷۷۴٫۲۲۶
+PR Total + gst: USD3,490.46
+CL Total + gst: CLP9.607
+AT Total + gst: EUR 9.822,03
+GB Total + gst: GBP9,608.66
+PA Total + gst: PAB6,552.74
+YE Total + gst: ١٠٬٩٤٨٫٣٤ YER
+MK Total + gst: 4 953,44 MKD
+CA Total + gst: 5 054,63 CAD
+VN Total + gst: 3.915 VND
+NL Total + gst: EUR 2.493,86
+US Total + gst: USD2,043.96
+CN Total + gst: CNY4,655.23
+HN Total + gst: HNL978.05
+US Total + gst: USD717.31
+MA Total + gst: 7 838,68MAD
+ID Total + gst: IDR10.517,22
+ZA Total + gst: ZAR8 375.51
+KR Total + gst: KRW9,351
+TN Total + gst: 6 525,226 TND
+RS Total + gst: 4.839,06 RSD
+BY Total + gst: 4 617,80 BYN
+TW Total + gst: TWD10,052.97
+SD Total + gst: ٣٬٨٢٢٫٥٣ SDG
+BO Total + gst: BOB4.860,94
+DZ Total + gst: DZD 2.680,70
+AR Total + gst: ARS 5.726,70
+AE Total + gst: ٦٬٦١٨٫٨٥ AED
+CA Total + gst: 5 580,42 CAD
+LT Total + gst: 2 944,89 EUR
+SY Total + gst: ١٬٤٥٧٫٥٩ SYP
+RU Total + gst: 4 092,01 RUB
+BE Total + gst: EUR 3.349,52
+ES Total + gst: 6.343,73 EUR
+IL Total + gst: ٨٬٤١٣٫٠١ ILS
+DK Total + gst: 161,71 DKK
+CR Total + gst: CRC233,27
+HK Total + gst: HKD8,383.24
+ES Total + gst: 486,29 EUR
+TH Total + gst: THB2,867.82
+UA Total + gst: 4 059,20 UAH
+DO Total + gst: DOP4,948.94
+VE Total + gst: VES7.322,82
+PL Total + gst: 6 273,46 PLN
+LY Total + gst: LYD 6.365,712
+JO Total + gst: ٨٨٤٫٤٣٠ JOD
+HU Total + gst: 442,34 HUF
+GT Total + gst: GTQ6,062.23
+PY Total + gst: PYG 4.655
+BG Total + gst: 9021,18 BGN
+HR Total + gst: 4.362,63 HRK
+RO Total + gst: 4.155,93 RON
+fr_LU Total + gst: 2.078,02 EUR
+SG Total + gst: SGD 1,289.38
+EC Total + gst: USD1.508,17
+BA Total + gst: 9.080,64 BAM
+NI Total + gst: NIO6,865.29
+SV Total + gst: SVC7,509.72
+IN Total + gst: INR २,२०८.८९
+GR Total + gst: 5.401,11 EUR
+SI Total + gst: 6.576,00 EUR
+IT Total + gst: EUR 694,10
+JP Total + gst: JPY4,314
+de_LU Total + gst: 8.493,20 EUR
+CH Total + gst: CHF 6’791,56
+MT Total + gst: EUR10,731.72
+BH Total + gst: ٧٬٠٧٠٫٨٢٤ BHD
+ME Total + gst: 6.235,91 EUR
+BR Total + gst: BRL 1.750,25
+NO Total + gst: 2 185,89 NOK
+CH Total + gst: CHF 8’463,42
+SG Total + gst: SGD 6,749.68
+KW Total + gst: ١٬٩٥٨٫٠١٣ KWD
+EG Total + gst: ٧٬٣٢٥٫٠٢ EGP
+IE Total + gst: EUR8,514.19
+PE Total + gst: PEN 9,297.34
+CZ Total + gst: 3 273,79 CZK
+TR Total + gst: 7.778,20 TRY
+UY Total + gst: UYU 3.926,00
+OM Total + gst: ٥٬٢٠١٫٩٢٦ OMR
+CS Total + gst: CSD 5.501,22
+AL Total + gst: 3 583,91 ALL
+PT Total + gst: 4 744,49 EUR
+LV Total + gst: 2 625,90 EUR
+SK Total + gst: 6 661,81 EUR
+MX Total + gst: MXN5,188.83
+AU Total + gst: AUD3,198.84
+NZ Total + gst: NZD 8,841.83
+SE Total + gst: 8 283,21 SEK
+LB Total + gst: ٤٦٤٫٢١ LBP
+DE Total + gst: 3.765,50 EUR
+CO Total + gst: COP 7.774,88
+PH Total + gst: PHP800.91
+EE Total + gst: 6 359,14 EUR
+CY Total + gst: EUR10.764,61
+FR Total + gst: 1 750,14 EUR

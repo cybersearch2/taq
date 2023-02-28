@@ -1,0 +1,10 @@
+include "mega_city.taq"
+
+template megacities 
+(
+. Continent ? "Europe", 
+  Megacity, 
+  Country
+)
+
+query<axiom> euro_megacities (mega_city@ : @global.megacities)

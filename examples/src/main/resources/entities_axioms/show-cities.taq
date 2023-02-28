@@ -1,0 +1,16 @@
+resource cities (database="db/cities") {}
+(
+  cities.set(user="sa", password="secret?")
+)
+
+scope cities_sql(provider = "city.CityProvider") {
+  function print(string resource_name)
+}
+
+flow report
+(
+  print("Imported cities:\n"),
+  cities_sql.print("cities")
+)
+
+query show_cities(report)

@@ -1,0 +1,4 @@
+high_city(addis ababa, 8000)
+high_city(denver, 5280)
+high_city(flagstaff, 6970)
+high_city(leadville, 10200)

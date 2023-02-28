@@ -1,0 +1,30 @@
+$ list<term> colors
+
+axiom german.colors (aqua, black, blue, white)
+  {"Wasser", "schwarz", "blau", "weiß"}
+  
+select swatch
+( 
+  colors,  Red, Green, Blue)
+{
+  ? aqua:  0, 255, 255
+  ? black: 0, 0, 0
+  ? blue:  0, 0, 255
+  ? white: 255, 255, 255
+}
+
+flow shade
+( 
+. flow swatch(name), 
+  name,
+  Red, 
+  Green, 
+  Blue, 
+  swatch.index())
+
+scope german (language="de", region="DE")
+{
+  query color_query (shade : shade)
+}
+
+

@@ -1,0 +1,48 @@
+$ list<term> colors
+
+resource german_colors : "xstream" (
+  provider="au.com.cybersearch2.taq.provider.FileProviderFactory")
+{ axiom german.colors(aqua, black, blue, white) }
+(
+  german_colors.set(filename="DE")
+)
+
+resource french_colors : "xstream" (
+    filename="FR",
+  provider="au.com.cybersearch2.taq.provider.FileProviderFactory")
+{ axiom french.colors(aqua, black, blue, white) }
+(
+  french_colors.set(filename="FR")
+)
+
+flow<term> color 
+{
+  integer Red, 
+  integer Green, 
+  integer Blue,
+  select color 
+  ( colors,  Red, Green, Blue)
+    {
+    ? aqua:    0, 255, 255
+    ? black:   0,   0,   0
+    ? blue:    0,   0, 255
+    ? white: 255, 255, 255
+    }
+}
+(
+  string name,
+. flow color(name),
+  red = Red,
+  green = Green,
+  blue = Blue
+)
+  
+scope french (language="fr", region="FR")
+{
+  query<term> color_query (shade : color)
+}
+
+scope german (language="de", region="DE")
+{
+  query<term> color_query (shade : color)
+}

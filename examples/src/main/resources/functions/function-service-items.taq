@@ -1,0 +1,42 @@
+$ template<term> service_amount (string service, string amount)
+
+scope service(provider = "service.ServiceProvider") {
+  function axiom<service_amount> amount(string item)
+}
+ 
+export axiom accumulator(total) { 0.0 }
+
+flow scan_items
+{
+  export list<axiom> charges,
+  list<term> summary = list accumulator,
+  cursor<string> item
+}
+(
+  {
+    ? fact item,
+    axiom survice_amount = 
+      service.amount(item++),
+    currency.USD amount = 
+      survice_amount
+        ->amount,
+    summary->total += amount,
+    charges += axiom {
+      Service = survice_amount->service,
+      Amount = amount.format() } 
+  }
+)
+
+query scan_service_items(items : scan_items)
+
+list<string> account_info = 
+{
+ "Service #83057 $60.00",
+ "Service #10800 $30.00",
+ "Service #10661 $45.00",
+ "Service #78587 $15.00",
+ "Service #99585 $10.00",
+ "Service #99900  $5.00"
+}
+axiom items(item) { list account_info }
+

@@ -1,0 +1,13 @@
+scope luxenberg (language="fr", region="LU")
+
+template locale
+(
+  name = scope.name,
+  language = scope.language,
+  region = scope.region,
+  locale = scope.locale
+) 
+
+query<term> lux_locale(luxenberg.locale)
+
+query<term> global_locale(locale)

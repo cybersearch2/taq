@@ -1,0 +1,44 @@
+axiom list city (name, altitude)
+    {"bilene", 1718}
+    {"addis ababa", 8000}
+    {"denver", 5280}
+    {"flagstaff", 6970}
+    {"jacksonville", 8}
+    {"leadville", 10200}
+    {"madrid", 1305}
+    {"richmond",19}
+    {"spokane", 1909}
+    {"wichita", 1305}
+
+// Performs insert sort on high_cities using a cursor
+flow insert_sort 
+{
+  export list<axiom> high_cities,
+  cursor city(high_cities)
+}
+(
+  // Filter out cities below 5,000 feet
+  altitude? > 5000,
+  // Append next city from source
+  high_cities += axiom high_city { name, altitude },
+  // Point cursor at city just inserted
+  -city,
+  // Save city and point to preceding city in list
+  inserted = city--,
+  // Skip case only one city is in the list
+  ? fact city,
+  // Remember start position
+  start = city.index(),
+  // Shuffle list until sort order restored
+  {
+    ? altitude < city->altitude,
+    city[1] = city--,
+    ? fact city
+   },
+  // All done if inserted city was in sort order
+  ?: city.index() == start,
+  // Place latest city in correct position
+  city[1] = inserted
+)
+
+query high_cities (city : insert_sort) 

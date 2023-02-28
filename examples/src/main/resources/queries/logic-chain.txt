@@ -1,0 +1,4 @@
+delivery(name=Marathon Marble, city=Sparta, fee=61, freight=16)
+delivery(name=Acropolis Construction, city=Athens, fee=47, freight=5)
+delivery(name=Agora Imports, city=Sparta, fee=49, freight=16)
+delivery(name=Spiros Theodolites, city=Milos, fee=57, freight=22)

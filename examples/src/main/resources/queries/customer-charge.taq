@@ -1,0 +1,22 @@
+template freight(charge, city)
+
+template customer_freight
+( 
+  name, 
+  city ? freight.city, 
+  charge = freight.charge
+)
+		
+query<axiom> customer_delivery(shipping:freight, customer:customer_freight)
+
+axiom list shipping (city, charge)
+  {"Athens", 23.99 }
+  {"Sparta", 13.99 }
+  {"Milos", 17.99 }
+        
+axiom list customer (name, city)
+  {"Marathon Marble", "Sparta"}
+  {"Acropolis Construction", "Athens"}
+  {"Agora Imports", "Sparta"}
+  {"Spiros Theodolites", "Milos"}
+

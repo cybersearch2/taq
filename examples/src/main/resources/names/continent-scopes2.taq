@@ -1,0 +1,10 @@
+include "mega_city.taq"
+
+scope Europe
+scope Asia
+
+template megacities (Megacity, Country, Continent ? scope.name )
+
+query<axiom> euro_megacities (mega_city@ : @Europe.megacities)
+
+query<axiom> asia_megacities (mega_city@ : @Asia.megacities)

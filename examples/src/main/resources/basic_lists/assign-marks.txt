@@ -1,0 +1,3 @@
+score(student=George, english=b+, maths=b-, history=a-)
+score(student=Sarah, english=c+, maths=a, history=b+)
+score(student=Amy, english=b, maths=a-, history=e+)

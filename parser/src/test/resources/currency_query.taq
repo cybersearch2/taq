@@ -1,0 +1,15 @@
+axiom item() {"$1234.56"}
+
+template charge(currency.AU amount)
+
+flow charge_plus_gst
+(
+  currency.AU total = charge.amount * 1.1
+)
+
+flow format_total
+(
+  string total_text = "Total + gst: " + charge_plus_gst.total.format()
+)
+
+query item_query(item : charge) -> (charge_plus_gst) -> (format_total)

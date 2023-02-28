@@ -1,0 +1,6 @@
+Boolean=true(Boolean)
+String=penguins(String)
+Integer=12345(Long)
+Double=123400.0(Double)
+Decimal=1234.56(BigDecimal)
+Currency=12345.67(BigDecimal)

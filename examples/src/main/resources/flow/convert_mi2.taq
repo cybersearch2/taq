@@ -1,0 +1,17 @@
+include "flow/surface-land.taq"
+
+flow convert_area
+{ 
+   double surface_area, 
+   string imperial,
+   string unit
+}
+(
+  country, 
+  ?? (unit == imperial) surface_area *= 2.59,
+  integer area = surface_area
+)
+
+query<axiom> convert_areas(surface_area : convert_area)
+  (imperial="mi2")
+ 

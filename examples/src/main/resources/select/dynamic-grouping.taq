@@ -1,0 +1,26 @@
+include "mega_city.taq"
+
+template group_cities 
+{
+  export list<axiom> asia,
+  export list<axiom> africa,
+  export list<axiom> europe,
+  export list<axiom> south_america,
+  export list<axiom> north_america,
+  string Continent
+}
+(
+. mega_city = list map Continent  {
+    ? "Asia":          asia
+    ? "Africa":        africa
+    ? "Europe":        europe
+    ? "South America": south_america
+    ? "North America": north_america
+  },
+  mega_city += axiom { Continent, Megacity, Country }
+)
+
+query mega_cities_by_continent 
+(
+  mega_city:group_cities
+) 

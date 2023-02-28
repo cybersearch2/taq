@@ -1,0 +1,46 @@
+template charge_plus_tax
+{
+  currency amount,
+  double tax_rate,
+  string Total,
+  string Tax
+}
+(
+  term scope.locale,
+  currency total = amount * (1 + tax_rate),
+  string total_text = Total + " + " + Tax + ": " + total.format()
+)
+
+scope french (language="fr", region="FR")
+{
+  axiom locale
+  ( tax_rate, Total, Tax ) 
+  { 0.15,    "le total", "impôt" }
+  
+  query<term> item_query(locale : charge_plus_tax)
+}
+
+scope german (language="de", region="DE")
+{
+  axiom locale
+  ( tax_rate, Total, Tax ) 
+  { 0.18,    "Gesamtkosten", "Steuer" }
+  
+  query<term> item_query(locale : charge_plus_tax)
+}
+
+scope belgium_fr (language="fr", region="BE")
+{
+  axiom locale
+  ( tax_rate, Total, Tax ) 
+  { 0.11,    "le total", "impôt" }
+  
+  query<term> item_query(locale : charge_plus_tax)
+}
+
+query item_query
+  (french.locale : french.charge_plus_tax, 
+   german.locale : german.charge_plus_tax,
+   belgium_fr.locale : belgium_fr.charge_plus_tax)
+
+

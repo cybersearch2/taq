@@ -1,0 +1,3 @@
+student_marks(report=George English:b+ Math:b- History:a-)
+student_marks(report=Sarah English:c+ Math:a History:b+)
+student_marks(report=Amy English:b Math:a- History:e+)

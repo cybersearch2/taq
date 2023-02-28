@@ -1,0 +1,25 @@
+list<string> euro_amounts = 
+{
+  "14.567,89",
+  "14 197,52",
+  "590,00"
+}
+
+flow all_amounts
+{
+  list<currency> amount_list,
+  currency.EUR total,
+  cursor<currency.EUR> euro_amount(euro_amounts),
+  export axiom amounts(items, total) { list amount_list, "0,00" }
+}
+(
+  total = currency @ "de_DE" 0,00,
+  {
+    ? fact euro_amount,
+    total += euro_amount,
+    amount_list += euro_amount++
+  },
+  amounts->total = total.format()
+)
+
+query parse_amounts(all_amounts)

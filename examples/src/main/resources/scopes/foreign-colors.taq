@@ -1,0 +1,42 @@
+$ list<term> colors
+
+axiom german.colors 
+  ( aqua,     black,     blue,   white )
+  {"Wasser", "schwarz", "blau", "weiß" }
+
+axiom french.colors 
+  ( aqua,         black,  blue,   white )
+  {"bleu vert",  "noir", "bleu", "blanc"}
+
+flow<term> color 
+{
+  integer Red, 
+  integer Green, 
+  integer Blue,
+  select color 
+  ( colors,  Red, Green, Blue)
+    {
+    ? aqua:    0, 255, 255
+    ? black:   0,   0,   0
+    ? blue:    0,   0, 255
+    ? white: 255, 255, 255
+    }
+}
+(
+  string shade,
+. flow color(shade),
+  red = Red,
+  green = Green,
+  blue = Blue
+)
+  
+scope german (language="de", region="DE")
+{
+  query color_query(color:color)
+}
+
+scope french (language="fr", region="FR")
+{
+  query color_query(color:color)
+}
+

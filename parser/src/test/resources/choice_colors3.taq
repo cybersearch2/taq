@@ -1,0 +1,19 @@
+select swatch
+  ( color,     red, green, blue)
+{
+  ? "aqua":  0,   255,   255
+  ? "black": 0,   0,     0 
+  ? "blue":  0,   0,     255
+  ? "white": 255, 255,   255
+}
+
+flow shader
+(
+  color = name,   
+  red, green, blue,
+. list<term> item = swatch(color),
+  ? fact item,
+  index = swatch.index()
+)
+
+query color_query (shade : shader)

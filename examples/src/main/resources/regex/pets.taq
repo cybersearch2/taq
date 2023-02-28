@@ -1,0 +1,37 @@
+string speciesRegex = "<species>dog"
+string nameRegex = "<name>([a-zA-z']*)[^a-zA-z']"
+string colorRegex = "<color>([a-zA-z' ]*)[^a-zA-z' ]"
+string petRegex = 
+    "^.*" + speciesRegex + 
+    ".*" + nameRegex + 
+    ".*" + colorRegex + ".*"
+ 
+pattern matchDog (case_insensitive) petRegex
+
+flow dogs_only
+{ export list<string> dogs }
+(
+  cursor<string> pet(pets),
+  {
+    ? fact pet,
+    ? pet++ #matchDog ( name, color )
+      { dogs += name + " is a " + color + " dog." }
+  }
+)
+
+list<string> pets = 
+{
+  "<pet><species>dog</species><name>Lassie</name><color>blonde</color></pet>",
+  "<pet><species>cat</species><name>Cuddles</name><color>tortoise</color></pet>",
+  "<pet><species>Dog</species><name>Bruiser</name><color>brindle</color></pet>",
+  "<pet><species>Dog</species><name>Rex</name><color>black and tan</color></pet>",
+  "<pet><species>Cat</species><name>Pixie</name><color>black</color></pet>",
+  "<pet><species>dog</species><name>Axel</name><color>white</color></pet>",
+  "<pet><species>Cat</species><name>Amiele</name><color>ginger</color></pet>",
+  "<pet><species>dog</species><name>Fido</name><color>brown</color></pet>"
+}
+
+query pet_query (list pets : dogs_only)
+
+
+

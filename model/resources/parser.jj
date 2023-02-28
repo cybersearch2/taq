@@ -1,0 +1,4024 @@
+options 
+{
+  LOOKAHEAD = 1;
+  CHOICE_AMBIGUITY_CHECK = 2;
+  OTHER_AMBIGUITY_CHECK = 1;
+  STATIC = false;
+  DEBUG_PARSER = false;
+  DEBUG_LOOKAHEAD = false;
+  DEBUG_TOKEN_MANAGER = false;
+  ERROR_REPORTING = true;
+  JAVA_UNICODE_ESCAPE = false;
+  UNICODE_INPUT = false;
+  IGNORE_CASE = false;
+  USER_TOKEN_MANAGER = false;
+  USER_CHAR_STREAM = false;
+  BUILD_PARSER = true;
+  BUILD_TOKEN_MANAGER = true;
+  SANITY_CHECK = true;
+  FORCE_LA_CHECK = false;
+}
+
+PARSER_BEGIN(TaqParser)
+/** Copyright 2022 Andrew J Bowley
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License. */
+    
+import java.io.InputStream;
+import java.util.List;
+import java.util.ArrayList;
+
+import au.com.cybersearch2.taq.language.BooleanTerm;
+import au.com.cybersearch2.taq.language.DoubleTerm;
+import au.com.cybersearch2.taq.language.DualIndex;
+import au.com.cybersearch2.taq.language.ExpressionIndex;
+import au.com.cybersearch2.taq.language.Group;
+import au.com.cybersearch2.taq.language.IOperand;
+import au.com.cybersearch2.taq.language.IVariableSpec;
+import au.com.cybersearch2.taq.language.IntegerTerm;
+import au.com.cybersearch2.taq.language.KeyName;
+import au.com.cybersearch2.taq.language.ListReference;
+import au.com.cybersearch2.taq.language.LiteralParameter;
+import au.com.cybersearch2.taq.language.LiteralType;
+import au.com.cybersearch2.taq.language.QualifiedName;
+import au.com.cybersearch2.taq.language.QuerySpec;
+import au.com.cybersearch2.taq.language.StringTerm;
+import au.com.cybersearch2.taq.language.TextDecoder;
+import au.com.cybersearch2.taq.language.Unknown;
+import au.com.cybersearch2.taq.language.TaqLiteral;
+import au.com.cybersearch2.taq.language.Term;
+import au.com.cybersearch2.taq.language.IOperand;
+import au.com.cybersearch2.taq.language.ITemplate;
+import au.com.cybersearch2.taq.language.OperandType;
+import au.com.cybersearch2.taq.language.Parameter;
+import au.com.cybersearch2.taq.language.InitialProperties;
+import au.com.cybersearch2.taq.engine.Compiler;
+import au.com.cybersearch2.taq.language.SyntaxException;
+import au.com.cybersearch2.taq.engine.Extent;
+import au.com.cybersearch2.taq.engine.Parser;
+import au.com.cybersearch2.taq.engine.SourceItem;
+import au.com.cybersearch2.taq.engine.SourceMarker;
+import au.com.cybersearch2.taq.engine.SourceTracker;
+import au.com.cybersearch2.taq.engine.Unit;
+import au.com.cybersearch2.taq.artifact.NameIndex;
+import au.com.cybersearch2.taq.artifact.NestedFlowArtifact;
+import au.com.cybersearch2.taq.artifact.ArchetypeArtifact;
+import au.com.cybersearch2.taq.artifact.TemplateArtifact;
+import au.com.cybersearch2.taq.artifact.FunctionArtifact;
+import au.com.cybersearch2.taq.artifact.ResourceArtifact;
+import au.com.cybersearch2.taq.artifact.ListArtifact;
+import au.com.cybersearch2.taq.artifact.ChoiceArtifact;
+import au.com.cybersearch2.taq.artifact.TermArtifact;
+
+
+@SuppressWarnings("all")
+public class TaqParser 
+{
+  /** Source item start token */
+  private Token itemToken;
+  private boolean sentinalPending = false;
+  private String currentName = "";
+  private String currentNonTerminal = SourceTracker.INPUT;
+    
+  public Parser publish() {
+	return new Parser() {
+	 
+	    @Override
+	    public void parse(Compiler compiler) {
+		  try
+		  {
+			  input(compiler);
+		  } catch (ParseException e) {
+		      throw new SyntaxException("eXPL compile failed", e);
+		  }
+		}
+	       
+	    @Override
+	    public void reinitialize(InputStream inputStream) {
+	        ReInit(inputStream);
+	    }
+	    
+	    @Override
+	    public Parser parserInstance(InputStream instream) {
+            return new TaqParser(instream).publish();
+	    }
+	 };
+  }
+ 
+   /**
+   * Returns content of string literal token stipped of quote delimiters
+   * @param stringLiteral Token object
+   * @return String
+   */
+  private String getText(Token stringLiteral) {
+     String text = stringLiteral.image.substring(1, stringLiteral.image.length() - 1);
+     if (text.indexOf('/') == -1)
+       return text;
+     else
+       return TextDecoder.decodeString(text).toString();
+  } 
+
+  private String display(Object value) {
+     if (value instanceof String)
+       return "\"" + value.toString() + "\"";
+     else
+       return value.toString();
+  }
+  
+  private Unit unit(Token token) {
+    TaqLiteral literal = literal(token.kind);
+    return new Unit(token.beginLine, token.beginColumn, literal);
+  }
+
+  private Extent extent(Token token) {
+    return new Extent(token.endLine, token.endColumn);
+  }
+ 
+  private void resetItemToken() {
+    itemToken = null;
+  }
+  
+  private void intercept(Token token, Compiler compiler) {
+    if (itemToken == null) {
+      itemToken = token;
+      if (sentinalPending) {
+        sentinalPending = false;
+        compiler.addSourceItem("", unit(token), extent(token));
+      }
+    }
+  }  
+
+  private  void setSentinal() {
+    sentinalPending = true;
+    resetItemToken();
+  }
+  
+  private TaqLiteral literal(int kind) {
+    switch(kind)
+    {
+    case TaqParserConstants.AXIOM: 
+        return TaqLiteral.axiom; 
+
+    case TaqParserConstants.BOOLEAN:
+        return TaqLiteral.taq_boolean; 
+
+    case TaqParserConstants.COMPLEX:
+        return TaqLiteral.complex; 
+
+    case TaqParserConstants.CURRENCY:
+        return TaqLiteral.currency; 
+
+    case TaqParserConstants.CURSOR:
+        return TaqLiteral.cursor; 
+
+    case TaqParserConstants.DECIMAL:
+        return TaqLiteral.decimal; 
+
+    case TaqParserConstants.DOUBLE:
+        return TaqLiteral.taq_double; 
+
+    case TaqParserConstants.EXPORT:
+        return TaqLiteral.export;
+        
+    case TaqParserConstants.FACT:
+        return TaqLiteral.fact; 
+
+    case TaqParserConstants.FLOW:
+        return TaqLiteral.flow; 
+
+    case TaqParserConstants.FUNCTION:
+        return TaqLiteral.function; 
+
+    case TaqParserConstants.IDENTIFIER:
+        return TaqLiteral.variable; 
+
+    case TaqParserConstants.INCLUDE:
+        return TaqLiteral.include; 
+
+    case TaqParserConstants.INTEGER:
+        return TaqLiteral.integer; 
+
+    case TaqParserConstants.LIST:
+        return TaqLiteral.list; 
+
+    case TaqParserConstants.MAP:
+        return TaqLiteral.map; 
+
+    case TaqParserConstants.PATTERN:
+        return TaqLiteral.pattern; 
+
+    case TaqParserConstants.QUERY:
+        return TaqLiteral.query; 
+
+    case TaqParserConstants.RESOURCE:
+        return TaqLiteral.resource; 
+
+    case TaqParserConstants.REVERSE:
+        return TaqLiteral.reverse; 
+
+    case TaqParserConstants.SCOPE:
+        return TaqLiteral.scope; 
+
+    case TaqParserConstants.SELECT:
+        return TaqLiteral.select; 
+
+    case TaqParserConstants.STRING:
+        return TaqLiteral.string; 
+
+    case TaqParserConstants.TEMPLATE:
+        return TaqLiteral.template; 
+
+    case TaqParserConstants.TERM:
+        return TaqLiteral.term; 
+
+    case TaqParserConstants.UNKNOWN:
+        return TaqLiteral.unknown; 
+
+    default:
+    }
+    return TaqLiteral.post_release; 
+  }
+}
+
+PARSER_END(TaqParser)
+
+SKIP :
+{
+  " "
+| "\t"
+| "\n"
+| "\r"
+| < "//" (~["\n","\r"])* ("\n" | "\r" | "\r\n") >
+}
+
+TOKEN :
+{
+  < AXIOM: "axiom" >
+| < BOOLEAN: "boolean" >
+| < COMPLEX: "complex" >
+| < CURRENCY: "currency" >
+| < CURSOR: "cursor" >
+| < DECIMAL: "decimal" >
+| < DOUBLE: "double" >
+| < EXPORT: "export" >
+| < FACT: "fact" >
+| < FLOW: "flow" >
+| < FUNCTION: "function" >
+| < INCLUDE: "include" >
+| < INTEGER: "integer" >
+| < LIST: "list" >
+| < MAP: "map" >
+| < PATTERN: "pattern" >
+| < QUERY: "query" >
+| < RESOURCE: "resource" >
+| < REVERSE: "reverse" >
+| < SCOPE: "scope" >
+| < SELECT: "select" >
+| < STRING: "string" >
+| < TEMPLATE: "template" >
+| < TERM: "term" >
+}
+
+/* LITERALS */
+
+TOKEN :
+{
+  < INTEGER_LITERAL:
+        <DECIMAL_LITERAL>
+      | <HEX_LITERAL>
+  >
+|
+  < #DECIMAL_LITERAL: (["0"-"9"])+ >
+|
+  < #HEX_LITERAL: "0" ["x","X"] (["0"-"9","a"-"f","A"-"F"])+ >
+|
+  < FLOATING_POINT_LITERAL:
+        (["0"-"9"])+ "." (["0"-"9"])* (<EXPONENT>)? (["d","D"])?
+      | "." (["0"-"9"])+ (<EXPONENT>)? (["d","D"])?
+      | (["0"-"9"])+ (<EXPONENT> | (["d","D"]))
+  >
+|
+  < #EXPONENT: ["e","E"] (["+","-"])? (["0"-"9"])+ >
+|
+  < STRING_LITERAL:
+      "\""
+      (     
+        (~["\"","\\","\n","\r"])
+        | 
+        ("\\" ( ["n","t","b","r","f","\\","'","\"","."] ) )
+      )*
+      "\""
+  >
+|
+  < QUOTE:
+      "'"
+      (     
+        ~["'","\\","\n","\r"]
+      )*
+      "'"
+  >
+|
+  < TRUE: "true" >
+|
+  < FALSE: "false" >
+|
+   <UNKNOWN: "unknown" >
+|
+   <NAN: "NaN" >
+}
+
+/* IDENTIFIERS */
+
+TOKEN :
+{
+  < IDENTIFIER: ["a"-"z","A"-"Z"] (["_","a"-"z","A"-"Z","0"-"9"])* >
+}
+
+
+/* SEPARATORS */
+
+TOKEN :
+{
+  < LPAREN: "(" >
+| < RPAREN: ")" >
+| < LBRACE: "{" >
+| < RBRACE: "}" >
+| < LBRACKET: "[" >
+| < RBRACKET: "]" >
+| < SEMICOLON: ";" >
+| < COMMA: "," >
+| < DOT: "." >
+| < RARROW: "->" >
+| < AT: "@" >
+| < BQUOT: "`" >
+}
+
+/* OPERATORS */
+
+TOKEN :
+{
+  < ASSIGN: "=" >
+| < LT: "<" >
+| < GT: ">" >
+| < BANG: "!" >
+| < COLON: ":" >
+| < QMARK: "?" >
+| < EQ: "==" >
+| < LE: "<=" >
+| < GE: ">=" >
+| < NE: "!=" >
+| < SC_OR: "||" >
+| < SC_AND: "&&" >
+| < INCR: "++" >
+| < DECR: "--" >
+| < PLUS: "+" >
+| < MINUS: "-" >
+| < STAR: "*" >
+| < SLASH: "/" >
+| < BIT_AND: "&" >
+| < BIT_OR: "|" >
+| < XOR: "^" >
+| < REM: "%" >
+| < LSHIFT: "<<" >
+| < RUNSIGNEDSHIFT: ">>>" >
+| < RSIGNEDSHIFT: ">>" >
+| < PLUSASSIGN: "+=" >
+| < MINUSASSIGN: "-=" >
+| < STARASSIGN: "*=" >
+| < SLASHASSIGN: "/=" >
+| < ANDASSIGN: "&=" >
+| < ORASSIGN: "|=" >
+| < XORASSIGN: "^=" >
+| < REMASSIGN: "%=" >
+| < LSHIFTASSIGN: "<<=" >
+| < RSIGNEDSHIFTASSIGN: ">>=" >
+| < RUNSIGNEDSHIFTASSIGN: ">>>=" >
+| < ELIPSES: "..." >
+}
+
+/** Root production. */
+void input(Compiler compiler) :
+{
+}
+{ 
+  ( 
+    ( LOOKAHEAD(2) 
+      ContextDeclaration(compiler) 
+      | 
+      ArchetypeDeclaration(compiler)
+    )
+    { currentNonTerminal = SourceTracker.INPUT; } 
+  )*
+  ( 
+    (
+      Statement(compiler) | 
+      QueryChain(compiler) |
+      ScopeDeclaration(compiler) |
+      PatternDeclaration(compiler) |
+      ResourceDeclaration(compiler)
+    ) { currentNonTerminal = SourceTracker.INPUT; }
+  )*
+  
+  <EOF>
+  {
+    //compiler.runPending();
+  }
+}
+
+void ContextDeclaration(Compiler compiler) :
+{
+  Token listToken;
+  Token nameToken;
+  Token scopeToken;
+  IVariableSpec varSpec;
+}
+{ 
+    scopeToken="$" listToken=<LIST> varSpec=ListType(compiler)
+    nameToken=<IDENTIFIER>
+  {
+    StringBuilder builder = new StringBuilder();
+    builder.append(scopeToken.image).append(' ');
+    builder.append(listToken.image);
+    builder.append(varSpec.getSource());
+    builder.append(' ').append(nameToken.image);
+    compiler.addSourceItem(builder.toString(), unit(scopeToken), extent(token));
+    compiler.getListFactoryArtifact().contextListDeclaration(nameToken.image, varSpec);
+  }
+}
+
+void ArchetypeDeclaration(Compiler compiler) :
+{
+  Token templateToken;
+  Token scopeToken;
+  Token axiomToken = null;
+  ArchetypeArtifact parserArchetype;
+  StringBuilder builder = new StringBuilder();
+}
+{ 
+  scopeToken="$" templateToken=<TEMPLATE>  
+  ( "<" (axiomToken=<AXIOM> | <TERM>) ">" ) 
+  { 
+    boolean isList = axiomToken != null;
+    builder.append(scopeToken.image).append(' ');
+    builder.append(templateToken.image);
+    builder.append('<').append(isList ? "axiom" : "term").append('>');
+    compiler.addSourceItem(builder.toString(), unit(scopeToken), extent(token));
+    isList = axiomToken != null; 
+  }
+  parserArchetype=Archetype(isList, compiler) Terms(parserArchetype, compiler)
+}
+
+ArchetypeArtifact Archetype(boolean isList, Compiler compiler) :
+{
+  Token nameToken;
+}
+{
+  nameToken=<IDENTIFIER>
+  {
+    compiler.appendSourceItem(extent(token), " " + nameToken.image);
+    ArchetypeArtifact parserArchetype = compiler.archetypeArtifactInstance(nameToken.image, isList);
+    return parserArchetype;
+  }
+}
+
+void Terms(ArchetypeArtifact parserArchetype, Compiler compiler) :
+{
+  Token encloseToken;
+  String termName;
+  IVariableSpec varSpec;
+  StringBuilder builder = new StringBuilder();
+}
+{
+  encloseToken="(" { intercept(encloseToken, compiler); }
+  {
+    builder.append('(');
+  } 
+  (  
+    varSpec=Type(compiler) termName=TermName(parserArchetype.getQualifiedAxiomName(), compiler) 
+    {
+      builder.append(varSpec.getSource()).append(' ').append(termName);
+      parserArchetype.addTerm(varSpec, termName);
+    }
+    ( "," varSpec=Type(compiler) termName=TermName(parserArchetype.getQualifiedAxiomName(), compiler)
+      {
+        builder.append(varSpec.getSource()).append(' ').append(termName);
+        parserArchetype.addTerm(varSpec, termName);
+      } 
+    )* 
+  )?  
+  ")" 
+  {
+    builder.append(')');
+    compiler.appendSourceItem(extent(token), " " + builder.toString());
+  } 
+}
+
+void ResourceDeclaration(Compiler compiler) :
+{
+  Token delimitToken;
+  Token resourceToken = null;
+  Token listToken = null;
+  Token axiomToken = null;
+  Token templateToken = null;
+  Token nameToken;
+  String termHeader = null;
+  String emitterClass = null;
+  String collectorClass = null;
+  QualifiedName qualifiedAxiomName;
+  QualifiedName qualifiedTemplateName;
+  QualifiedName qualifiedListName;
+  ResourceArtifact parserResource;
+  FunctionArtifact parserFunction = null;
+  InitialProperties properties;
+  currentNonTerminal = "ResourceDeclaration"; 
+  compiler.setSourceMarker(currentNonTerminal);
+}
+{
+  resourceToken=<RESOURCE> 
+  nameToken=<IDENTIFIER>
+  {
+    compiler.addSourceItem(resourceToken.image + " " + nameToken.image, unit(resourceToken), extent(token));
+    parserResource = compiler.resourceArtifactInstance(nameToken.image);
+  }
+  (
+    (
+      ":" ResourceSignature(parserResource, compiler)
+    )
+    |
+    ( 
+      InitialiserList(properties = new InitialProperties(), compiler) 
+      { 
+        parserResource.setProperties(properties);
+      }
+    ) 
+  )?
+  delimitToken="{"
+  {
+    compiler.appendSourceItem(extent(token), delimitToken.image);
+  }
+  ( LOOKAHEAD(2)
+   ( 
+    ( 
+      collectorClass=CollectorClass(compiler)
+      {
+        parserResource.setCollectorClass(collectorClass);
+      }
+    )?
+    axiomToken=<AXIOM> qualifiedAxiomName=AxiomKeyName(compiler) 
+    termHeader = TermHeader(qualifiedAxiomName, true, false, compiler)
+    { 
+      compiler.addSourceItem("axiom" + termHeader, unit(axiomToken), extent(token));
+    }
+    ( 
+      emitterClass=EmitterClass(compiler)
+      {
+        parserResource.setEmitterClass(emitterClass);
+      }
+    )?
+   )
+   {
+     if (emitterClass == null) {
+       parserResource.setCollectorAxiomName(qualifiedAxiomName);
+       parserResource.setHasCollectorAxiom(true);
+     } else {
+       parserResource.setEmitterAxiomName(qualifiedAxiomName);
+       parserResource.setHasEmitterAxiom(true);
+     }
+   }
+  )?
+  ( 
+    (
+      templateToken=<TEMPLATE> qualifiedTemplateName=TemplateName(compiler) 
+      {
+        compiler.addSourceItem(templateToken.image + " " + currentName, unit(templateToken), extent(token));
+        parserResource.setQualifiedTemplateName(qualifiedTemplateName);
+        parserResource.setHasTemplate(true);
+      }
+      |
+      listToken=<LIST> qualifiedListName=Name(compiler, true, false) 
+      {
+        compiler.addSourceItem(listToken.image + " " + currentName, unit(listToken), extent(token));
+        parserResource.setQualifiedListName(qualifiedListName);
+        parserResource.setHasList(true);
+      }
+      |
+      axiomToken=<AXIOM> qualifiedAxiomName=AxiomKeyName(compiler) 
+      termHeader = TermHeader(qualifiedAxiomName, true, false, compiler)
+      { 
+        compiler.addSourceItem("axiom" + termHeader, unit(axiomToken), extent(token));
+        parserResource.setEmitterAxiomName(qualifiedAxiomName);
+        parserResource.setHasEmitterAxiom(true);
+      }
+    )
+    ( 
+      emitterClass=EmitterClass(compiler)
+      {
+        parserResource.setEmitterClass(emitterClass);
+      }
+    )?
+  )?
+  delimitToken="}" 
+  {  
+    compiler.appendSourceItem(extent(delimitToken), delimitToken.image); 
+    parserResource.resourceDeclaration();
+  }
+  
+  ( 
+    delimitToken="(" 
+    {
+      compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+      parserFunction = compiler.functionArtifactInstance(parserResource.getQualifiedName(), nameToken.image);
+    }
+    Receiver(parserFunction, compiler)
+    delimitToken=")" 
+    {
+      compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+      parserResource.resourceBody(parserFunction.getReceiver());
+    }
+  )?
+}
+
+String CollectorClass(Compiler compiler):
+{
+  Token chainToken;
+  Token classnameToken;
+}
+{ 
+  classnameToken=<STRING_LITERAL>  
+  chainToken=<RARROW>
+  {
+    compiler.appendSourceItem(extent(chainToken), classnameToken.image + " " + chainToken.image);
+    return getText(classnameToken);
+  }
+ }
+
+String EmitterClass(Compiler compiler):
+{
+  Token chainToken;
+  Token classnameToken;
+}
+{ 
+  chainToken=<RARROW>
+  classnameToken=<STRING_LITERAL>  
+  {
+    compiler.appendSourceItem(extent(classnameToken), chainToken.image+ " " + classnameToken.image);
+    return getText(classnameToken);
+  }
+}
+
+void ResourceSignature(ResourceArtifact parserResource, Compiler compiler) :
+{
+  Token referenceToken;
+  InitialProperties properties = new InitialProperties();
+}
+{
+  referenceToken=<STRING_LITERAL> 
+  {
+    compiler.appendSourceItem(extent(referenceToken), " " + referenceToken.image);
+    parserResource.setSystemName(getText(referenceToken));
+  }
+  ( 
+    InitialiserList(properties, compiler) 
+  )? 
+  { 
+    parserResource.setProperties(properties);
+  }
+}
+
+void Statement(Compiler compiler):
+{
+  resetItemToken();
+}
+{ 
+  Include(compiler) |
+  ItemDeclaration(compiler) |
+  VariableDeclaration(compiler) |
+  TemplateDeclaration(compiler) | 
+  FlowDeclaration(compiler) |
+  SelectDeclaration(compiler) |
+  ListItemAssign(compiler)
+}
+
+void ItemDeclaration(Compiler compiler):
+{
+}
+{ LOOKAHEAD(2)
+  AxiomDeclaration(compiler) | ListDeclaration(compiler) 
+}
+
+void QueryChain(Compiler compiler) :
+{
+  QuerySpec querySpec;
+  Token queryToken;
+  Token chainToken;
+  Token typeToken = null;
+  compiler.setSourceMarker("QueryChain");
+}
+{  
+  queryToken=<QUERY> ( "<" (typeToken=<AXIOM> | typeToken=<TERM>) ">" )? querySpec=Query(compiler)
+  {
+    StringBuilder builder = new StringBuilder(queryToken.image);
+    if (typeToken != null)
+      builder.append('<').append(typeToken.image).append('>');
+    builder.append(' ').append(querySpec.getName());
+    compiler.addSourceItem(builder.toString(), unit(queryToken), extent(token));
+  }
+  querySpec=QueryDeclaration(querySpec, compiler) 
+  ( 
+    chainToken=<RARROW>
+    {
+       compiler.appendSourceItem(extent(chainToken), chainToken.image);
+    }
+    QueryDeclaration(querySpec.chain(), compiler) 
+  )* 
+  { 
+    TaqLiteral literal = null;
+    if (typeToken != null)
+      literal = unit(typeToken).getKind();
+    compiler.getQueryArtifact().queryChain(querySpec, literal);
+  }  
+}
+
+void FunctionDeclaration(Compiler compiler) :
+{
+  Token functionToken;
+  Token nameToken;
+  Token listToken = null;
+  Token typeToken = null;
+  Token archetypeToken = null;
+  OperandType operandType = null;
+  IVariableSpec varSpec = null;
+  
+  String parameterSignature = null;
+  compiler.setSourceMarker("Function");
+}
+{ 
+  functionToken=<FUNCTION> 
+  ( 
+    operandType = BasicType(compiler)
+    |
+    (
+      listToken=<LIST> varSpec=ListType(compiler)
+      {
+        operandType = varSpec.getOperandType();
+      }
+    )
+    | 
+    typeToken=<UNKNOWN> { operandType = OperandType.UNKNOWN; }
+    |
+    typeToken=<AXIOM> "<" archetypeToken=<IDENTIFIER> ">" { operandType = OperandType.AXIOM; }
+  )?
+  nameToken=<IDENTIFIER> 
+  ( parameterSignature=ParameterSignature(compiler) )?
+  {
+    StringBuilder builder = new StringBuilder();
+    if (listToken != null) {
+      builder.append(listToken.image);
+      builder.append(varSpec.getSource());
+    } else if (operandType != null)
+      builder.append(operandType.name());
+    else if (typeToken != null)
+      builder.append(typeToken.image);
+    if (operandType == OperandType.AXIOM)
+      builder.append('<').append(archetypeToken.image).append('>');
+    builder.append(' ').append(functionToken.image).append(' ').append(nameToken.image);
+    if (parameterSignature != null)
+      builder.append(' ').append(parameterSignature);
+    compiler.addSourceItem(builder.toString(), unit(functionToken), extent(token));
+    String archetype = archetypeToken != null ? archetypeToken.image : "";
+    compiler.getFunctionFactoryArtifact().function(nameToken.image, operandType, listToken != null, archetype);
+  }  
+}
+
+OperandType BasicType(Compiler compiler) :
+{
+  Token typeToken;
+}
+{
+  (
+    typeToken=<INTEGER>
+  | typeToken=<DOUBLE>
+  | typeToken=<DECIMAL>
+  | typeToken=<BOOLEAN>
+  | typeToken=<STRING>
+  | typeToken=<CURRENCY> )
+  {
+    intercept(typeToken, compiler);
+    return compiler.getOperandType(unit(typeToken).getKind());
+  }
+}
+
+String ParameterSignature(Compiler compiler) :
+{
+   StringBuilder builder = new StringBuilder();
+   String typedParameter;
+}
+{ 
+  <LPAREN> { builder.append('('); }
+  (  
+     typedParameter=TypedParameter(compiler) { builder.append(typedParameter); }
+     ( "," typedParameter=TypedParameter(compiler) )* { builder.append(',').append(typedParameter); }
+  ) ?
+  (
+    "?" { builder.append('?'); } | <ELIPSES> { builder.append("..."); }
+  ) ?
+  <RPAREN> { builder.append(')'); }
+  {
+    return builder.toString();
+  }
+  
+}
+
+String TypedParameter(Compiler compiler) :
+{
+  Token typeToken;
+  Token nameToken;
+  OperandType operandType;
+}
+{
+   ( operandType=BasicType(compiler) |
+     typeToken=<TERM> 
+     { 
+       intercept(typeToken, compiler);
+       operandType=OperandType.TERM; 
+     }
+   ) nameToken=<IDENTIFIER> 
+   {
+     return compiler.type(operandType) + " " + nameToken.image;
+   }
+}
+
+QuerySpec Query(Compiler compiler) :
+{
+   Token nameToken;
+}
+{
+  nameToken=<IDENTIFIER> 
+  {
+    return compiler.getQueryArtifact().createQuerySpec(nameToken.image, true);
+  }    
+}
+
+QuerySpec QueryDeclaration(QuerySpec querySpec, Compiler compiler) :
+{
+  KeyName firstKeyname;
+  Token delimitToken;
+  int keynameCount = 1;
+  String source;
+  List<Term> termList = new ArrayList<Term>();
+}
+{
+   itemToken="(" 
+     firstKeyname=KeyName(querySpec, true, compiler)
+     ( 
+       "," KeyName(querySpec, false, compiler) { ++keynameCount; }
+     )* 
+     delimitToken=")" 
+	 {
+	   compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+	 }
+     ( 
+       source=TermList(termList, compiler) 
+       {
+	     compiler.appendSourceItem(extent(token), source);
+       }
+     )?
+   {
+     return compiler.getQueryArtifact().queryDeclaration(querySpec, firstKeyname, keynameCount, termList);
+   }
+}
+
+KeyName KeyName(QuerySpec querySpec, boolean isFirst, Compiler compiler) :
+{
+  Token listTeken = null;
+  QualifiedName name1 = null;
+  QualifiedName name2;
+  String source = isFirst ? itemToken.image : "";
+  resetItemToken();
+}
+{ 
+  ( // To remove ambiguity of having one or two 2-part names, look for colon
+    ( LOOKAHEAD(4) 
+      ( listTeken=<LIST> )?  
+       name1=AxiomKeyName(compiler) 
+      ":" 
+      { 
+        if (listTeken != null)
+          source += listTeken.image + " ";
+        source += currentName + ":"; 
+        resetItemToken();
+        if (listTeken != null) {
+          IOperand listOperand = compiler.getVariableArtifact().getListVariable(name1, false);
+          name1 = compiler.getQueryArtifact().wrapList(name1, listOperand);
+        }
+      }
+    )?
+    name2=TemplateName(compiler) { source += currentName; }
+  ) 
+  {
+    compiler.addSourceItem(source, unit(itemToken), extent(token));
+    return compiler.getQueryArtifact().keyName(querySpec, name1, name2);
+  }
+}
+
+void PatternDeclaration(Compiler compiler) :
+{
+  Token patternToken;
+  Token nameToken;
+  int flags = 0;
+  Token regexLit = null;
+  Token patternId = null;
+  String literal = null;
+  String variable = null;
+  currentNonTerminal = "PatternDeclaration"; 
+  compiler.setSourceMarker(currentNonTerminal);
+}
+{
+  patternToken=<PATTERN> nameToken=<IDENTIFIER>
+  {
+     compiler.addSourceItem(patternToken.image + " " + nameToken.image, unit(patternToken),  extent(token));
+  }
+  ( LOOKAHEAD(2) flags=RegexFlags(compiler) )?  
+  ( 
+    regexLit=<STRING_LITERAL>
+    | 
+    patternId=<IDENTIFIER> 
+  )  
+  {
+    if (regexLit != null) 
+    {
+      compiler.addSourceItem(regexLit.image, unit(regexLit), extent(token));
+      literal = getText(regexLit);
+    }
+    else
+    {
+      compiler.addSourceItem(patternId.image, unit(patternId), extent(token));
+      variable = patternId.image; 
+    }
+    compiler.getRegularExpressionArtifact().patternDeclaration(nameToken.image, literal, variable, flags);  
+  }
+}
+
+void VariableDeclaration(Compiler compiler) :
+{
+  Token nameToken;
+  Token declareToken = null;
+  Token assignToken;
+  String name;
+  boolean isUntyped = true;
+  IVariableSpec varSpec = null;
+  IOperand expression = null;
+  IOperand operand = null;
+  resetItemToken();
+  currentNonTerminal = "VariableDeclaration"; 
+  compiler.setSourceMarker(currentNonTerminal);
+}
+{
+  ( 
+    varSpec=Type(compiler)
+    {
+      isUntyped = false;
+    }
+    | 
+    declareToken=<TERM> { intercept(declareToken, compiler); } 
+  )
+  nameToken=<IDENTIFIER> 
+  {
+    String source = varSpec != null ? varSpec.getSource() : declareToken.image;
+    compiler.addSourceItem(source + " " + nameToken.image, unit(itemToken), extent(nameToken));
+    name = nameToken.image;
+  }
+  ( 
+    assignToken="=" 
+    {
+      compiler.appendSourceItem(extent(assignToken), assignToken.image);
+    }
+    (
+      ( LOOKAHEAD(3)
+        expression=Expression(compiler) 
+        |
+        expression=Call(compiler)
+      )
+      |
+      operand = LiteralSet(compiler)
+      
+    )
+    |
+    expression=FactTerm(compiler) 
+  )?
+  {
+    if (operand == null)
+      compiler.getVariableArtifact().variableDeclaration(name, expression, isUntyped, varSpec);
+    else
+      compiler.getComplexArtifact().complexDeclaration(name, operand, varSpec);
+  }
+}
+
+QualifiedName AxiomDeclaration(Compiler compiler) :
+{
+  QualifiedName qualifiedAxiomName;
+  Token exportToken = null;
+  Token axiomToken = null;
+  Token listToken = null;
+  currentNonTerminal = "AxiomDeclaration"; 
+  compiler.setSourceMarker(currentNonTerminal);
+}
+{
+  (exportToken=<EXPORT>)? axiomToken=<AXIOM> ( listToken=<LIST> )?
+  qualifiedAxiomName=AxiomName(compiler) 
+  {
+    Unit unit = unit(axiomToken);
+    StringBuilder builder = new StringBuilder(axiomToken.image);
+    if (listToken != null)
+      builder.append(' ').append(listToken.image);
+    builder.append(' ').append(qualifiedAxiomName.toString());
+    compiler.addSourceItem(builder.toString(), unit, extent(token));
+  }
+  
+  AxiomSpecification(qualifiedAxiomName, listToken != null, exportToken != null, compiler) 
+  {
+    return qualifiedAxiomName;
+  }
+} 
+
+IOperand Call(Compiler compiler) :
+{
+  QualifiedName qname;
+  IOperand callOperand;
+  FunctionArtifact parserFunction;
+  
+}
+{
+  ( 
+    qname=Name(compiler, false, false) 
+    | 
+    <DECIMAL> 
+    { 
+      qname = new QualifiedName(TaqLiteral.decimal.name()); 
+      currentName = TaqLiteral.decimal.name(); 
+    } 
+  )
+  {
+    parserFunction = compiler.functionArtifactInstance(qname, currentName);
+  }
+  callOperand=FunctionCall(parserFunction, compiler)
+  {
+    return callOperand;
+  }
+}
+
+IOperand ListVariable(Compiler compiler) :
+{
+  Token keywordToken;
+  Token nameToken;
+  Token assignToken = null;
+  IVariableSpec varSpec;
+  IOperand function = null;
+  StringBuilder builder = new StringBuilder();
+}
+{
+  (
+    (
+      keywordToken=<LIST> 
+      { 
+        builder.append(keywordToken.image);
+        intercept(keywordToken, compiler); 
+      } 
+      varSpec=ListType(compiler) 
+    )  
+    |
+    (
+      keywordToken=<AXIOM> 
+      { 
+        builder.append(keywordToken.image);
+        varSpec=compiler.getVariableArtifact().termList();
+      }
+    )
+  )
+  nameToken=<IDENTIFIER> 
+  {
+    builder.append(varSpec.getSource()).append(' ').append(nameToken.image);
+    compiler.addSourceItem(builder.toString(), unit(keywordToken), extent(token));
+  }
+  ( assignToken="=" { compiler.appendSourceItem(extent(assignToken), " = "); } 
+  function = Call(compiler) )? 
+  {
+    return compiler.getVariableArtifact().createListVariable(nameToken.image, varSpec, false, false, function);
+  }
+}
+
+IOperand CursorVariable (Compiler compiler) :
+{
+  Token nameToken;
+  Token keywordToken = null;
+  Token providerToken = null;
+  Token directionToken = null;
+  Token assignToken = null;
+  IVariableSpec varSpec = null;
+  IOperand function = null;
+  QualifiedName qname;
+  QualifiedName target = null;
+  FunctionArtifact parserFunction;
+  StringBuilder builder = new StringBuilder();
+}
+{
+  ( directionToken=<REVERSE> )? keywordToken=<CURSOR> 
+  { 
+    if (directionToken != null)
+      builder.append(directionToken.image).append(' ');;
+    builder.append(keywordToken.image);
+    intercept(keywordToken, compiler); 
+  } 
+  (
+    ( 
+      varSpec=ListType(compiler) nameToken=<IDENTIFIER> 
+      (
+        "(" target=Name(compiler, false, false) ")"
+      )?
+    )
+    |
+    ( nameToken=<IDENTIFIER> "(" providerToken=<IDENTIFIER> ")" )
+  )
+  {
+    if (varSpec != null) {
+      builder.append(varSpec.getSource());
+      if (target != null)
+        builder.append('(').append(currentName).append(')');
+    } else { 
+      builder.append(nameToken.image).append('(');
+      builder.append(providerToken.image).append(')');
+    }
+    builder.append(' ').append(nameToken.image);
+    Token beginToken = directionToken != null ? directionToken : keywordToken;
+    compiler.addSourceItem(builder.toString(), unit(beginToken), extent(token));
+    if (providerToken != null) 
+      return compiler.getCursorArtifact().createResourceSentinel(nameToken.image, providerToken.image, directionToken != null);
+    else if (target != null)
+      return compiler.getVariableArtifact().createCursorSentinel(nameToken.image, varSpec, target, directionToken != null);
+  }
+  ( assignToken="=" { compiler.appendSourceItem(extent(assignToken), " = "); } 
+    qname=Name(compiler, false, false)
+    {
+      parserFunction = compiler.functionArtifactInstance(qname, currentName);
+    }
+    function=FunctionCall(parserFunction, compiler) 
+  )? 
+  {
+    return compiler.getVariableArtifact().createListVariable(nameToken.image, varSpec, true, directionToken != null, function);
+  }
+}
+
+
+
+String ListDeclaration(Compiler compiler) :
+{
+  Token keywordToken;
+  Token nameToken;
+  Token delimitToken = null;
+  Token directionToken = null;
+  Token exportToken = null;
+  String listName;
+  IVariableSpec varSpec = null;
+  QualifiedName qualifiedAxiomName = null;
+  ITemplate template = null;
+  Token beginToken = null;
+  Token endToken = null;
+  QualifiedName target = null;
+  ListArtifact parserList;
+  List<String> axiomHeader = null;
+  List<ITemplate> axiomList;
+  resetItemToken();
+  if (currentNonTerminal.equals(SourceTracker.INPUT)) {
+    currentNonTerminal = "ListDeclaration"; 
+    compiler.setSourceMarker(currentNonTerminal);
+  }
+}
+{
+  ( 
+    (exportToken=<EXPORT> { intercept(exportToken, compiler); } )? 
+    keywordToken=<LIST> { intercept(keywordToken, compiler); } 
+  ) 
+  ( varSpec=ListType(compiler) )? 
+  nameToken=<IDENTIFIER>
+  (
+    delimitToken=<LBRACKET>
+    beginToken=<INTEGER_LITERAL> "," endToken=<INTEGER_LITERAL> 
+    <RBRACKET> 
+  )?
+  {
+    listName = nameToken.image;
+    parserList = compiler.listArtifactInstance(listName, varSpec, exportToken != null);
+    StringBuilder builder = new StringBuilder();
+    if (exportToken != null)
+      builder.append(exportToken.image + " " + keywordToken.image);
+    else
+      builder.append(keywordToken.image);
+    if (varSpec != null)
+      builder.append(varSpec.getSource());
+    builder.append(' ').append(nameToken.image);
+    compiler.addSourceItem(builder.toString(), unit(itemToken), extent(token));
+    if (beginToken != null) 
+    {
+      compiler.addSourceItem("[" + beginToken.image + "," + endToken.image + "]", unit(delimitToken), extent(token));
+      parserList.setRange(Integer.parseInt(beginToken.image), Integer.parseInt(endToken.image));
+    }
+  }
+  ( 
+    (  
+      "=" { resetItemToken(); } 
+      (
+        (
+          (   
+            keywordToken=<LIST> { intercept(keywordToken, compiler); } 
+            qualifiedAxiomName=AxiomName(compiler) 
+            {
+              compiler.addSourceItem(keywordToken.image + " " + currentName, unit(keywordToken), extent(token));
+              parserList.setQualifiedAxiomName(qualifiedAxiomName); 
+            }
+          )
+          | 
+          (
+            target=Name(compiler, false, false)
+            {
+              compiler.addSourceItem(target.toString(), unit(itemToken), extent(token));
+              parserList.setTarget(target);
+            }
+          )
+        )
+        |
+        (
+          ( directionToken=<REVERSE> )?
+          template=ListParameters(parserList, compiler)
+          {
+            if (directionToken != null)
+              template.reverse();
+            parserList.setTemplate(template);
+          }
+        )
+      )  
+    )
+    |
+    (
+      ( axiomHeader=DynamicTermHeader(compiler) )?
+      axiomList=AxiomList(parserList.getQualifiedAxiomName(), parserList.getTermCount(axiomHeader), compiler) 
+      {
+        parserList.setAxiomList(axiomList, axiomHeader);
+      }
+    )
+  )?
+  {
+    parserList.listDeclaration();
+    return listName;
+  }
+}
+
+void CursorDeclaration(TemplateArtifact template, Compiler compiler) :
+{
+  Token keywordToken;
+  Token nameToken;
+  Token listToken = null;
+  String cursorName;
+  Token directionToken = null;
+  IVariableSpec varSpec = null;
+  if (currentNonTerminal.equals(SourceTracker.INPUT)) {
+    currentNonTerminal = "CursorDeclaration"; 
+    compiler.setSourceMarker(currentNonTerminal);
+  }
+}
+{
+  ( directionToken=<REVERSE> )? keywordToken=<CURSOR>
+  ( varSpec=ListType(compiler) )?
+  nameToken=<IDENTIFIER> 
+  {
+    cursorName = nameToken.image;
+  }
+  ( "(" listToken=<IDENTIFIER> ")" )? 
+  {
+    StringBuilder builder = new StringBuilder(keywordToken.image);
+    if (varSpec != null)
+      builder.append(varSpec.getSource());
+    if (listToken != null) {
+      builder.append(' ').append(nameToken.image).append('(');
+      builder.append(listToken.image).append(')');
+    }
+    compiler.addSourceItem(builder.toString(), unit(nameToken), extent(token));
+    String listName = listToken != null ? listToken.image : cursorName;
+    IOperand operand = compiler.getCursorArtifact().cursorDeclaration(varSpec, cursorName, listName, directionToken != null);
+    template.addTerm(operand);
+  }
+}
+
+void TemplateDeclaration(Compiler compiler) :
+{
+  TemplateArtifact template;
+  currentNonTerminal = "TemplateDeclaration"; 
+  compiler.setSourceMarker(currentNonTerminal);
+}
+{
+  itemToken=<TEMPLATE> 
+  template = TemplateHead(compiler, false) TemplateBody(template, compiler)
+  {
+    if (template.isReturnsTerm())
+       template.createReturnTermList();
+  }
+}
+
+void FlowDeclaration(Compiler compiler) :
+{
+  TemplateArtifact template;
+  currentNonTerminal = "FlowDeclaration"; 
+  compiler.setSourceMarker(currentNonTerminal);
+}
+{
+  itemToken=<FLOW> 
+  template = TemplateHead(compiler, true) FlowBody(template, compiler)
+  {
+    template.flowDeclaration();
+  }
+}
+
+void SelectDeclaration(Compiler compiler) :
+{
+  Token selectToken;
+  Token nameToken;
+  Token braceToken;
+  Token delimitToken;
+  String termName;
+  int selection = 0;
+  ChoiceArtifact parserChoice;
+  currentNonTerminal = "SelectDeclaration";
+  compiler.setSourceMarker(currentNonTerminal);
+  StringBuilder builder;
+  QualifiedName mapQname;
+}
+{
+  selectToken=<SELECT> nameToken=<IDENTIFIER>
+  {
+    String source = selectToken.image + " " + nameToken.image;
+    compiler.addSourceItem(source, unit(selectToken), extent(token));
+    parserChoice = compiler.choiceArtifactInstance(nameToken.image, false);
+  }
+  (
+    delimitToken="(" 
+    {
+      builder = new StringBuilder(delimitToken.image);
+    }
+    termName=TermName(parserChoice.getQualifiedAxiomName(), compiler)
+    {
+      builder.append(termName);
+      parserChoice.analyseFirstTermName(termName);
+    }
+    (
+      "," termName=TermName(parserChoice.getQualifiedAxiomName(), compiler) 
+      {
+        builder.append(',').append(termName);
+      }
+    )*  
+    ")" 
+    {
+      builder.append(')');
+      compiler.addSourceItem(builder.toString(), unit(delimitToken), extent(token)); 
+    }
+  )?
+  braceToken=<LBRACE>
+  {
+    compiler.appendSourceItem(extent(braceToken), braceToken.image);
+  }
+  Selection(selection++, parserChoice, false, compiler)
+  ( Selection(selection++, parserChoice, false, compiler) )* 
+  braceToken=<RBRACE>
+  {
+    compiler.appendSourceItem(extent(braceToken), braceToken.image);
+  }
+} 
+
+TemplateArtifact TemplateHead(Compiler compiler, boolean isCalculator) :
+{
+  Token nameToken;
+  Token termToken = null;
+  Token delimitToken = null;
+  TemplateArtifact template;
+  SourceItem sourceItem;
+}
+{
+  ( "<" termToken=<TERM> ">" )? 
+  nameToken=<IDENTIFIER>
+  {
+    boolean returnsTerm = termToken != null;
+    StringBuilder builder = new StringBuilder(itemToken.image);
+    if (returnsTerm)
+      builder.append('<').append(termToken.image).append('.'); 
+    builder.append(' ').append(nameToken.image);
+    sourceItem = compiler.addSourceItem(builder.toString(), unit(itemToken), extent(token));
+    template = compiler.templateArtifactInstance(nameToken.image, isCalculator, returnsTerm);
+  } 
+  ( 
+    delimitToken=<LBRACE>
+    {
+      sourceItem.append(extent(delimitToken), delimitToken.image);
+    }
+    ( 
+      TemplateScope(template, compiler) 
+      ( "," TemplateScope(template, compiler) )* 
+    )
+    delimitToken=<RBRACE> 
+    {
+      compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+    }
+  )?
+  {
+    return template;
+  }
+  
+}
+
+void TemplateScope(TemplateArtifact template, Compiler compiler) :
+{
+  Token nameToken;
+  Token declareToken = null;
+  IVariableSpec varSpec = null;
+  resetItemToken();
+}
+{ LOOKAHEAD(2)
+  ListDeclaration(compiler) 
+  |
+  CursorDeclaration(template, compiler)
+  |
+  SelectDeclaration(compiler)
+  |
+  (
+    varSpec=Type(compiler) nameToken=<IDENTIFIER>  
+    {
+      compiler.addSourceItem(varSpec.getSource() + " " + nameToken.image, unit(itemToken), extent(nameToken));
+    }
+  )
+  { 
+    template.addVariable(varSpec, nameToken.image);
+  }
+  | 
+  (
+    declareToken=<TERM> nameToken=<IDENTIFIER>
+    {
+      compiler.addSourceItem(declareToken.image + " " + nameToken.image, unit(declareToken), extent(nameToken));
+    }
+  )
+  {
+    compiler.getVariableArtifact().variableDeclaration(nameToken.image, null, true, varSpec);
+  }
+  |
+  ( 
+    AxiomDeclaration(compiler)
+  )
+}
+
+void TemplateBody(TemplateArtifact template, Compiler compiler) :
+{
+  Token delimitToken;
+  Token privateToken = null;
+  IOperand operand;
+  currentNonTerminal = "TemplateBody"; 
+  compiler.setSourceMarker(currentNonTerminal);
+  template.setOuterTemplateName();
+}
+{
+  delimitToken="("
+  {
+    compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+  } 
+  ( ( privateToken=<DOT> )?
+    operand=TemplateExpression(template, compiler)
+    {
+      if (privateToken != null) {
+        operand.setPrivate(true);
+        privateToken = null;
+      }
+      template.addTerm(operand);
+    }
+  )
+  (
+    delimitToken="," 
+    ( ( privateToken=<DOT> )?
+      operand=TemplateExpression(template, compiler)
+      {
+        if (privateToken != null) {
+          operand.setPrivate(true);
+          privateToken = null;
+        }
+        template.addTerm(operand);
+      }
+    )
+  )* 
+  delimitToken=")" 
+  {
+    compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+    template.adjustContextName();
+  }
+}
+
+void FlowBody(TemplateArtifact template, Compiler compiler) :
+{
+  Token delimitToken;
+  Token privateToken = null;
+  IOperand operand;
+  List<Term> termList = new ArrayList<Term>();
+}
+{
+  delimitToken="("
+  {
+    compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+  } 
+  (  ( privateToken=<DOT> )?
+    operand=Flow(template, compiler)
+    {
+      if (privateToken != null) {
+        operand.setPrivate(true);
+        privateToken = null;
+      }
+      template.addTerm(operand);
+    }
+  )
+  (
+    delimitToken="," 
+    (  ( privateToken=<DOT> )?
+      operand=Flow(template, compiler)
+      {
+        if (privateToken != null) {
+          operand.setPrivate(true);
+          privateToken = null;
+        }
+        template.addTerm(operand);
+      }
+    )
+  )* 
+  delimitToken=")" 
+  {
+    compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+    template.adjustContextName();
+  }
+  ( TermList(termList, compiler) )?
+  {
+    if (termList.size() > 0)
+      template.addProperties(termList);
+  }
+}
+
+List<ITemplate> AxiomList(QualifiedName qualifiedAxiomName, int axiomHeaderCount, Compiler compiler) :
+{
+  List<ITemplate> templateParamList = new ArrayList<ITemplate>();
+  ITemplate template;
+}
+{
+  template = AxiomInitializer(qualifiedAxiomName.getName(), qualifiedAxiomName, axiomHeaderCount, compiler)
+  {
+    templateParamList.add(template);
+  }
+  ( 
+    template = AxiomInitializer(qualifiedAxiomName.getName(), qualifiedAxiomName, axiomHeaderCount, compiler)
+    {
+     templateParamList.add(template);
+    }
+  )*
+  {
+    return templateParamList;
+  }
+}
+
+ITemplate AxiomInitializer(String listName, QualifiedName axiomName, int axiomHeaderCount, Compiler compiler) :
+{
+  Token braceToken;
+  ITemplate initializeTemplate = null;
+}
+{
+  itemToken=<LBRACE> 
+  ( initializeTemplate = AxiomTerms(listName, axiomHeaderCount, compiler) )? 
+  braceToken=<RBRACE>
+  {
+    if (initializeTemplate != null)
+      compiler.appendSourceItem(extent(braceToken), braceToken.image);
+    else
+      compiler.appendSourceItem(extent(braceToken), itemToken.image + braceToken.image);
+    return compiler.getAxiomInterface().axiomInitializer(axiomName, initializeTemplate);
+  }
+}
+
+ITemplate AxiomTerms(String key, int axiomHeaderCount, Compiler compiler) :
+{
+  IOperand expression;
+  Parameter parameter;
+  String functionKey = compiler.functionKey(key);
+  ITemplate template = compiler.chainTemplate();
+  template.setKey(functionKey);
+}
+{ 
+  ( 
+    ( LOOKAHEAD(3)
+      (
+        expression=Expression(compiler) 
+        |            
+        expression=TypedLiteralTerm(compiler)
+      )
+      |
+      parameter=List(false, compiler) 
+      {
+        expression = (IOperand)parameter;
+      }
+    )
+    { 
+      if (axiomHeaderCount > 0) {
+        --axiomHeaderCount;
+        expression = compiler.termExpression(Term.ANONYMOUS, expression, null);
+      }
+      template.addTerm(expression);
+    }
+  )
+  ( ","
+    {
+      setSentinal();
+    }
+    ( 
+      ( LOOKAHEAD(3)
+        (
+          expression=Expression(compiler) 
+          |            
+          expression=TypedLiteralTerm(compiler)
+        )
+        |
+        parameter=List(false, compiler) 
+        {
+          expression = (IOperand)parameter;
+        }
+      )
+      { 
+        if (axiomHeaderCount > 0) {
+         --axiomHeaderCount;
+          expression = compiler.termExpression(Term.ANONYMOUS, expression, null);
+        }
+        template.addTerm(expression);
+      }
+    )
+  )*
+  {
+    return template;
+  }
+}
+
+ITemplate ListParameters(ListArtifact parserList, Compiler compiler) :
+{
+  Token delimitToken;
+  IOperand expression;
+  ITemplate template = parserList.chainTemplate();
+}
+{ 
+  delimitToken=<LBRACE>  
+  {
+    compiler.addSourceItem(delimitToken.image, unit(delimitToken), extent(delimitToken));
+  }
+  expression=Expression(compiler)
+  { 
+     template.addTerm(parserList.listParameters(expression));
+  }
+  ( ","
+    {
+      setSentinal();
+    }
+    expression=Expression(compiler)
+    { 
+      template.addTerm(parserList.listParameters(expression));
+    }
+  )*
+  delimitToken=<RBRACE>
+  {
+    compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+    return template;
+  }
+}
+
+ITemplate Parameters(String callName, Compiler compiler, boolean nameRequired) :
+{
+  IOperand expression;
+  Parameter parameter;
+  String functionKey = compiler.functionKey(callName);
+  ITemplate template = compiler.chainTemplate();
+  template.setKey(functionKey);
+}
+{
+  ( 
+    expression=ParameterExpression(compiler, true)
+    { 
+       template.addTerm(expression);
+    }
+    |
+    parameter=List(false, compiler) 
+    {
+      template.addTerm((IOperand)parameter);
+    }
+  )
+  (
+    ","
+    (
+      expression=ParameterExpression(compiler, false)
+      {
+        template.addTerm(expression);
+      }
+      |
+      parameter=List(false, compiler) 
+      {
+       template.addTerm((IOperand)parameter);
+      }
+    )
+  )* 
+  {
+    return template;
+  }
+}
+
+IOperand TemplateExpression(TemplateArtifact template, Compiler compiler) :
+{
+  Token delimitToken = null;
+  Token scopeToken = null;
+  Token nameToken = null;
+  IOperand operand = null;
+  IOperand regexOp = null;
+  QualifiedName qname;
+  ListReference listReference = null;
+  resetItemToken();
+}
+{
+   ( LOOKAHEAD(2) 
+     (   
+       nameToken=<IDENTIFIER> 
+       { 
+       itemToken = nameToken;
+       compiler.addSourceItem(nameToken.image, unit(itemToken), extent(token));
+       } 
+       operand=ShortCircuitExpression(nameToken.image, compiler) 
+     )
+     | LOOKAHEAD(2)
+       (
+       operand=TemplateTerm(template.getTemplate(), compiler)
+     )
+     |
+     operand = CursorVariable(compiler)
+     |
+     (
+       scopeToken=<SCOPE> 
+       {
+         compiler.addSourceItem(scopeToken.image, unit(scopeToken), extent(scopeToken));
+       }
+       listReference=IndexExpression(compiler)
+       {
+         operand = compiler.getScopeArtifact().createScopeTerm(listReference);
+       }
+     ) 
+	 |
+     operand = ListVariable(compiler)
+   )
+  {
+    return operand;
+  }
+}
+
+IOperand ShortCircuitExpression(String name, Compiler compiler) :
+{
+  Token rightToken = null;
+  Token scToken1 = null;
+  Token scToken2 = null;
+  Token op = null;
+  IOperand expression = null;
+}
+{
+  scToken1="?" { intercept(scToken1, compiler); }
+  ( LOOKAHEAD(2) scToken2=":" )?
+  {
+    String source = scToken1.image;
+    if (scToken2 != null)
+      source += scToken2.image;
+    else
+      scToken2 = scToken1;
+     compiler.appendSourceItem(extent(scToken2), " " + source);
+  }
+  (
+    expression=Literals(name, ":".equals(scToken2), compiler) 
+    {
+      return expression;
+    } 
+    |
+    (
+      ( LOOKAHEAD(2)
+        (
+          ( LOOKAHEAD(2) ( rightToken=<IDENTIFIER> )? 
+          ( op="<" | op=">" | op="<=" | op=">=" | op="==" | op="!=" | op="?") )?
+          {
+            StringBuilder builder = new StringBuilder();
+            if (rightToken != null)
+              builder.append(' ').append(rightToken.image).append(' ');
+            if (op != null)  
+            {
+              if ("?".equals(op.image))
+                builder.append('?').append(' ');
+              else
+                builder.append(' ').append(op.image).append(' ');
+            }
+            compiler.appendSourceItem(extent(token), builder.toString());
+          }
+          expression=Expression(compiler)
+        )
+        | 
+        expression=PrimaryExpression(compiler)
+      )
+      {
+        String binaryOp = op != null ? op.image : null;
+        String rightName = (rightToken != null)  ? rightToken.image : null;
+        return compiler.getExpressionArtifact().shortCircuitExpression(name, rightName, binaryOp, expression, scToken2.image);
+      }
+    )
+  )
+}
+  
+IOperand Flow(TemplateArtifact template, Compiler compiler) :
+{
+  IOperand operand;
+}
+{
+  ( LOOKAHEAD(3)  
+    operand = FlowExpression(template, compiler) 
+    | LOOKAHEAD(3)
+    operand=TemplateExpression(template, compiler) 
+    | 
+    ( 
+      { setSentinal(); }
+      operand=Expression(compiler) 
+    ) 
+  )
+  {
+    return operand;
+  }
+}
+
+IOperand FlowExpression(TemplateArtifact template, Compiler compiler) :
+{
+  Token delimitToken;
+  Token scToken1 = null;
+  Token scToken2 = null;
+  Token flowToken;
+  Token hashToken = null;
+  Token patternToken = null;
+  IOperand expression = null;
+  IOperand innerLoop = null;
+  NestedFlowArtifact nestedFlow = null;
+  String operator = "&&";
+  Group group = null;
+  FunctionArtifact parserFunction;
+  QualifiedName functionName = null;
+}
+{ 
+  (
+    ( LOOKAHEAD(2) 
+      (
+        scToken1="?" "?" delimitToken=<LPAREN> 
+        {
+          compiler.addSourceItem("?? (", unit(scToken1), extent(delimitToken));
+        }
+        expression=Expression(compiler) delimitToken=<RPAREN> 
+        {
+          compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+        }
+        innerLoop=Flow(template, compiler)
+        {
+          expression = compiler.getExpressionArtifact().compactLoop(expression, innerLoop, true);
+        }
+      )
+      |
+      ( 
+        scToken1="?" ( LOOKAHEAD(2) scToken2=":" )?
+        {
+          String source = scToken1.image;
+          if (scToken2 != null) 
+          {
+            source += scToken2.image;
+            operator = "||"; 
+          }
+          else
+            scToken2 = scToken1;
+          source += " ";
+          compiler.addSourceItem(source, unit(scToken1), extent(scToken2));
+        }
+        (
+          expression=Expression(compiler) 
+          (
+            hashToken="#" patternToken=<IDENTIFIER>
+            ( 
+              group=GroupDeclaration(compiler) 
+            )?
+            {
+              compiler.appendSourceItem(extent(hashToken), hashToken.image + patternToken.image);
+              expression = compiler.getExpressionArtifact().regularExpression(expression, patternToken.image, group);
+            }
+          )?
+        )
+      )
+      ( 
+        delimitToken="{"
+        {
+          nestedFlow = nestedFlow = compiler.nestedFlowInstance(template, true);
+          compiler.addSourceItem(delimitToken.image + " // branch", unit(delimitToken), extent(delimitToken));
+        }
+        innerLoop=InnerFlow(nestedFlow, compiler) 
+        delimitToken="}"
+        {
+          compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+        }
+      )?  
+      {
+        expression = compiler.getExpressionArtifact().flowExpression(innerLoop, expression, operator);
+      }
+    )
+    |
+    (
+      delimitToken="{"
+      {
+        compiler.addSourceItem(delimitToken.image + " // loop", unit(delimitToken), extent(delimitToken));
+        nestedFlow = compiler.nestedFlowInstance(template, false);
+      }
+      ( LOOKAHEAD(2)
+         (
+          scToken1="?" "?" delimitToken=<LPAREN> 
+          {
+            compiler.addSourceItem("?? (", unit(scToken1), extent(delimitToken));
+          }
+          expression=Expression(compiler) delimitToken=<RPAREN> 
+          {
+            compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+          }
+          innerLoop=Flow(template, compiler)
+          {
+            expression = compiler.getExpressionArtifact().compactLoop(expression, innerLoop, false);
+          }
+        )
+        |
+        expression=InnerFlow(nestedFlow, compiler)
+      )
+      delimitToken="}"
+      {
+        compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+      }
+    )
+    | 
+    (
+      flowToken=<FLOW>
+      {
+        compiler.addSourceItem(flowToken.image + " ", unit(flowToken), extent(flowToken));
+      }
+      functionName=Name(compiler, false, false)
+      {
+        parserFunction = compiler.functionArtifactInstance(functionName, currentName);
+      }
+      expression = FunctionCall(parserFunction, compiler)
+    )
+    |
+    expression = IdentifierPostfix(compiler)
+    
+  )
+  {
+    if (nestedFlow != null)
+      nestedFlow.getParserTemplate().adjustContextName();
+    return expression;
+  }
+}
+
+IOperand IdentifierPostfix(Compiler compiler) :
+{
+  Token nameToken = null;
+  Token postfixToken = null;
+}
+{ 
+  nameToken=<IDENTIFIER>
+  (    
+    postfixToken=<INCR>
+    | 
+    postfixToken=<DECR>
+  )
+  {
+    compiler.addSourceItem(nameToken.image + postfixToken.image, unit(nameToken), extent(postfixToken));
+    return compiler.getExpressionArtifact().identifierPostfix(nameToken.image, postfixToken.image);
+  } 
+}
+
+IOperand InnerFlow(NestedFlowArtifact nestedFlow, Compiler compiler) :
+{
+
+  IOperand operand;
+  SourceMarker sourceMarker = null;
+  if (!nestedFlow.isRunOnce())
+    sourceMarker = compiler.pushSourceMarker("InnerFlow");
+}
+{
+  ( 
+    operand=Flow(nestedFlow.getParserTemplate(), compiler)
+    {
+      nestedFlow.getTemplate().addTerm(operand);
+    }
+  )
+  (
+    "," 
+    (
+      operand=Flow(nestedFlow.getParserTemplate(), compiler)
+      {
+        nestedFlow.getTemplate().addTerm(operand);
+      }
+    )
+  )* 
+  {
+    if (sourceMarker != null)
+    {
+      sourceMarker.checkForShortCircuit();
+      compiler.popSourceMarker();
+    }
+    return compiler.innerFlow(nestedFlow.getTemplate(), nestedFlow.isRunOnce());
+   }
+}
+
+IOperand TemplateTerm(ITemplate template, Compiler compiler) :
+{
+  Token assignToken = null;
+  Token equalsToken = null;
+  Token hashToken = null;
+  Token patternToken = null;
+  TermArtifact parserTerm;
+  IOperand operand = null;
+  IOperand expression = null;
+  QualifiedName qname = null;
+  IVariableSpec varSpec= null;
+  ListReference listReference = null;
+  resetItemToken();
+}
+{ 
+ (
+  ( varSpec=Type(compiler) )? 
+  qname=Name(compiler, true, varSpec != null) 
+  { 
+    StringBuilder builder = new StringBuilder();
+    if (varSpec != null)
+      builder.append(varSpec.getSource()).append(' '); 
+    builder.append(currentName);
+    compiler.addSourceItem(builder.toString(), unit(itemToken), extent(token));
+  }
+  (  
+    listReference=IndexExpression(compiler)
+  )?
+  { 
+    parserTerm = compiler.termArtifactInstance(varSpec, qname, listReference);
+  }
+  ( 
+    ( LOOKAHEAD(3)
+      (
+        (
+          equalsToken="=" 
+          { 
+            compiler.appendSourceItem(extent(equalsToken), equalsToken.image);
+            parserTerm.setOperator(equalsToken.image);
+          } 
+          | 
+          assignToken=<PLUSASSIGN> 
+          { 
+            compiler.appendSourceItem(extent(assignToken), assignToken.image);
+            parserTerm.setOperator(assignToken.image);
+          }
+        )
+        ( 
+          ( LOOKAHEAD(3)
+            expression=Expression(compiler) 
+            {
+              parserTerm.setExpression(expression);
+            }
+            |
+            expression=TypedLiteralTerm(compiler)
+            {
+              parserTerm.setLiteral(expression);
+            }
+          )
+          |
+          TermAxiomList(parserTerm, compiler)
+          |
+          operand=Map(template, parserTerm, compiler) 
+        )
+      )
+	  |
+      ReflexiveAssign(parserTerm, compiler)
+      |
+      Arguments(parserTerm, compiler)
+      |
+      hashToken="#" patternToken=<IDENTIFIER>
+      {
+         compiler.appendSourceItem(extent(hashToken), hashToken.image + patternToken.image);
+         IOperand regexOp = compiler.getExpressionArtifact().regularExpression(qname, patternToken.image);
+         operand = compiler.getTermFactoryArtifact().createRegexTerm(regexOp);
+      }
+    )
+  )?
+  {
+    if (operand == null)
+      operand = compiler.getTermFactoryArtifact().templateTerm(parserTerm);
+    return operand;
+  }
+ )
+ |
+  operand=AnonTemplateTerm(compiler)
+  {
+    return operand;
+  }
+}
+
+IOperand AnonTemplateTerm(Compiler compiler) :
+{
+  Token termToken;
+  IOperand expression;
+}
+{ 
+  termToken=<TERM> 
+  {
+     compiler.addSourceItem("", unit(termToken), extent(termToken));
+     resetItemToken();
+  }
+  expression=Expression(compiler) 
+  {
+    return compiler.getTermFactoryArtifact().templateTerm(expression);
+  }
+}
+
+void TermAxiomList(TermArtifact parserTerm, Compiler compiler) :
+{
+  Token axiomToken;
+  Token assignToken;
+  Token nameToken;
+  String source;
+  ITemplate template = null;
+  QualifiedName axiomQname = QualifiedName.ANONYMOUS;
+}
+{
+  axiomToken=<AXIOM> 
+  {
+    source = axiomToken.image;
+  }
+  ( 
+    axiomQname=AxiomKeyName(compiler) 
+    {
+      source += (" " + currentName);
+     }
+  ) ? 
+  {
+    compiler.appendSourceItem(extent(token), source);
+  }
+  template=TermsInitializer(axiomQname, compiler) 
+  {
+    parserTerm.assignAxiomList(axiomQname, template);
+  }
+}
+
+IOperand Map(ITemplate template, TermArtifact parserTerm, Compiler compiler) :
+{
+  Token keywordToken;
+  Token nameToken;
+  Token braceToken;
+  Token scopeToken = null;
+  Token listToken = null;
+  ChoiceArtifact parserChoice;
+  int selection = 0;
+}
+{
+  ( listToken=<LIST> )? keywordToken=<MAP>
+  ( scopeToken=<SCOPE> "." )?
+  nameToken=<IDENTIFIER>
+  {
+    String source = keywordToken.image + " " + nameToken.image;
+    compiler.addSourceItem(source, unit(keywordToken), extent(nameToken));
+    parserChoice = compiler.choiceArtifactInstance(nameToken.image, true);
+    if (scopeToken != null) {
+      IOperand scopeFunction = compiler.getFunctionFactoryArtifact().createScopeFunction(QualifiedName.SCOPE, nameToken.image);
+      parserChoice.setValueExpression(scopeFunction);
+    }
+  }
+  braceToken=<LBRACE>
+  {
+    compiler.appendSourceItem(extent(braceToken), braceToken.image);
+  }
+  ( Selection(selection++, parserChoice, listToken != null, compiler) )+
+  braceToken=<RBRACE>
+  {
+    compiler.appendSourceItem(extent(braceToken), braceToken.image);
+    return parserChoice.getMap(parserTerm.getQname(), template, listToken != null);
+  }
+}
+
+ITemplate TermsInitializer(QualifiedName axiomName, Compiler compiler) :
+{
+  Token braceToken;
+  ITemplate template = null;
+}
+{
+  itemToken=<LBRACE> 
+  ( template = Expressions(axiomName.toString(), compiler) )? 
+  braceToken=<RBRACE>
+  {
+    compiler.appendSourceItem(extent(braceToken), braceToken.image);
+    return compiler.getAxiomInterface().axiomInitializer(axiomName, template);
+  }
+}
+
+
+
+ITemplate Expressions(String axiomKey, Compiler compiler) :
+{
+  Token nameToken;
+  Token termToken;
+  Token assignToken = null;
+  String identifier = null;
+  IOperand expression = null;
+  ListReference listReference = null;
+  ITemplate template = compiler.chainTemplate();
+  template.setKey(axiomKey);
+}
+{
+  (
+   ( 
+    nameToken=<IDENTIFIER> 
+    {
+      identifier = nameToken.image;
+      compiler.addSourceItem(identifier + " ", unit(nameToken), extent(nameToken));
+    }
+    ( 
+      listReference=IndexExpression(compiler) 
+    )? 
+    ( assignToken="=" { compiler.appendSourceItem(extent(assignToken), assignToken.image);  }
+      expression=Expression(compiler)
+    )?
+   )
+   |
+   (
+    termToken=<TERM> 
+    {
+      identifier = "";
+      compiler.addSourceItem("", unit(termToken), extent(termToken));
+    }
+    expression=Expression(compiler)
+   )
+  )
+  {
+    template.addTerm(compiler.termExpression(identifier, expression, listReference));
+  }
+  (
+   ","
+   (
+    (
+      nameToken=<IDENTIFIER> 
+      {
+        identifier = nameToken.image;
+        compiler.addSourceItem(identifier + " ", unit(nameToken), extent(nameToken));
+      }
+      ( 
+        listReference=IndexExpression(compiler) 
+      )? 
+      ( assignToken="=" { compiler.appendSourceItem(extent(assignToken), assignToken.image);  }
+        expression=Expression(compiler)
+      )?
+    )
+    |
+    (
+      termToken=<TERM> 
+      {
+        identifier = "";
+        compiler.addSourceItem("", unit(termToken), extent(termToken));
+      }
+      expression=Expression(compiler)
+     )
+    )
+    {
+      template.addTerm(compiler.termExpression(identifier, expression, listReference));
+    }
+  )* 
+  {
+    return template;
+  }
+}
+
+void ReflexiveAssign(TermArtifact parserTerm, Compiler compiler) :
+{
+  Token assignToken;
+  IOperand expression;
+}
+{
+  (   
+    assignToken=<MINUSASSIGN> |
+    assignToken=<STARASSIGN> |
+    assignToken=<SLASHASSIGN> |
+    assignToken=<ANDASSIGN> |
+    assignToken=<ORASSIGN> |
+    assignToken=<XORASSIGN> |
+    assignToken=<REMASSIGN> 
+    assignToken=<LSHIFTASSIGN> | 
+    assignToken=<RSIGNEDSHIFTASSIGN> | 
+    assignToken=<RUNSIGNEDSHIFTASSIGN> 
+  )
+  {
+    compiler.appendSourceItem(extent(assignToken), assignToken.image);
+    parserTerm.setOperator(assignToken.image);
+  }
+  expression=Expression(compiler) 
+  {
+    parserTerm.reflexiveAssign(assignToken.image, expression);
+  }
+}
+
+IOperand Literals(String name, boolean isNot, Compiler compiler) :
+{
+  Token braceToken;
+  List<Parameter> literalList = null;
+  resetItemToken();
+}
+{
+  braceToken=<LBRACE>  { intercept(braceToken, compiler); }
+  literalList = LiteralList(compiler) 
+  braceToken=<RBRACE>
+  {
+    StringBuilder builder = new StringBuilder(" ");
+    builder.append('{');
+    for (Parameter item: literalList)
+      builder.append(display(item.getValue()));
+    builder.append('}');
+    compiler.appendSourceItem(extent(braceToken), builder.toString());
+    return compiler.getExpressionArtifact().literals(name, isNot, literalList);
+  }
+}
+
+void Arguments(TermArtifact parserTerm, Compiler compiler) :
+{
+  ITemplate parameterTemplate = null;
+}
+{
+  (
+    itemToken="(" 
+    {
+      compiler.appendSourceItem(extent(token), itemToken.image);
+    }
+    ( parameterTemplate = Parameters(parserTerm.getQname().toString(), compiler, true) )? 
+    ")"
+    {
+      compiler.appendSourceItem(extent(token), token.image);
+    }
+  ) 
+  {
+    parserTerm.setParameterTemplate(parameterTemplate);
+  }
+}
+
+List<Parameter> LiteralList(Compiler compiler) :
+{
+  List<Parameter>  literalList = new ArrayList<Parameter>();
+  Parameter parameter;
+}
+{
+  parameter=LiteralTerm(compiler)
+  {
+    literalList.add(parameter);
+  }
+  ( 
+    "," 
+    parameter = LiteralTerm(compiler) 
+    {
+      literalList.add(parameter);
+    }
+  )*
+  {
+    return literalList;
+  }
+}
+
+void Selection(int selection, ChoiceArtifact parserChoice, boolean isList, Compiler compiler) :
+{
+
+  Token delimToken;
+  IOperand operand;
+  QualifiedName qname;
+  setSentinal();
+}
+{
+  operand=ShortCircuitExpression(parserChoice.getName(), compiler)
+  ( delimToken=":" )
+  {
+    compiler.appendSourceItem(extent(delimToken), delimToken.image);
+    compiler.getAxiomInterface().fact(parserChoice.getQualifiedAxiomName(), new Parameter(Term.ANONYMOUS, ""));
+  }
+  ( LOOKAHEAD(3)
+    (
+      SelectionTerm(parserChoice, compiler) 
+      {
+     	if (isList)
+	      throw new SyntaxException("Only identifier not allowed as list map value");
+      } 
+      (
+        ( delimToken="," )
+        {
+          compiler.appendSourceItem(extent(delimToken), delimToken.image);
+        }
+        SelectionTerm(parserChoice, compiler)
+    )  * 
+    )
+    {
+      compiler.getChoiceFactoryArtifact().selection(parserChoice, operand);
+    }
+    |
+    qname=Name(compiler, true, false)
+    {
+      if (!isList)
+	    throw new SyntaxException("Identifier not allowed as select value");
+	  compiler.appendSourceItem(extent(token), currentName);
+	  compiler.getChoiceFactoryArtifact().selectionList(parserChoice.getQualifiedAxiomName(), qname, currentName);
+      compiler.getChoiceFactoryArtifact().selection(parserChoice, operand);
+    } 
+  )   
+}
+
+void SelectionTerm(ChoiceArtifact parserChoice, Compiler compiler) :
+{
+  Token nameToken;
+  resetItemToken();
+}
+{
+  Fact(parserChoice.getQualifiedAxiomName(), false, compiler)
+  {
+    compiler.appendSourceItem(extent(token), currentName);
+  }
+}
+
+IOperand ParameterExpression(Compiler compiler, boolean isFirst) :
+{
+  Token macroToken;
+  Token termToken = null;
+  Token identifierToken = null;
+  Token postfixToken = null;
+  Parameter parameter = null;
+  ListReference listReference = null;
+  IOperand inputOp = null;
+  IOperand expression = null;
+  String identifier = null;
+  String name = Term.ANONYMOUS;
+  String source = isFirst ? itemToken.image : "";
+  SourceItem sourceItem = null;
+  if (!isFirst)
+    resetItemToken();
+}
+{ 
+  (
+    (
+      identifierToken=<IDENTIFIER> 
+      {
+        intercept(identifierToken, compiler);
+        identifier = identifierToken.image;
+        source += identifier;
+        sourceItem = compiler.addSourceItem(source, unit(itemToken), extent(identifierToken));
+        name = identifier;
+      }
+      (
+        listReference=IndexExpression(compiler) 
+        |
+        (
+          (
+            postfixToken=<INCR>
+            | 
+            postfixToken=<DECR>
+          )
+          {
+            inputOp = compiler.getExpressionArtifact().cursorPostfixExpression( compiler.name(identifier, true, false), postfixToken.image);
+            sourceItem.append(extent(postfixToken), postfixToken.image);  
+          }
+        )
+        |
+        ( "=" { sourceItem.append(extent(token), "="); }
+          ( LOOKAHEAD(3)
+            expression=Literal(compiler) 
+            {
+              parameter = new Parameter(Term.ANONYMOUS, expression.getValue());
+              expression = null;
+            }
+            |
+            expression=Expression(compiler) 
+            |            
+            expression=TypedLiteralTerm(compiler)
+          )
+        )
+      )?
+    )
+    |
+    parameter=LiteralTerm(compiler) 
+    {
+      compiler.appendSourceItem(extent(token), source, display(parameter.getValue()));
+    }
+    |
+    (
+      termToken=<TERM>
+      {
+          intercept(termToken, compiler);
+          identifier = "";
+          source += termToken.image;
+          sourceItem = compiler.addSourceItem(source, unit(itemToken), extent(termToken));
+      }
+      expression=Expression(compiler) 
+    )
+  )
+  {
+    if (inputOp != null)
+      return inputOp;
+    if (expression != null)
+      return compiler.getExpressionArtifact().parameterExpression(name, expression);
+    if (listReference != null)
+      return compiler.getListFactoryArtifact().listReference(compiler.name(identifier, true, false), listReference);
+    if (parameter != null)
+      return compiler.getExpressionArtifact().parameterExpression(name, parameter);
+    else
+      return compiler.getExpressionArtifact().parameterExpression(name, compiler.name(identifier, true, false));
+  }
+}
+
+void ListItemAssign(Compiler compiler) :
+{
+  Token nameToken;
+  Token assignToken;
+  QualifiedName name;
+  ListReference listReference;
+  IOperand expression = null;
+  currentNonTerminal = "ListItemAssign"; 
+  compiler.setSourceMarker(currentNonTerminal);
+  resetItemToken();
+}
+{
+  name=Name(compiler, true, false)
+  {
+     compiler.addSourceItem(currentName, unit(itemToken), extent(token));
+  }
+  listReference=IndexExpression(compiler) 
+  {
+    resetItemToken();
+  }
+  assignToken="=" 
+  {
+    compiler.appendSourceItem(extent(assignToken), assignToken.image);
+  }
+  expression=Expression(compiler) 
+  {
+     compiler.getListFactoryArtifact().listItemAssign(name, listReference, expression);
+  }
+}
+
+IVariableSpec Type(Compiler compiler) :
+{
+  Token literalToken;
+  Token ccToken = null;
+  Token identifier = null;
+  Token stringToken = null;
+  String source;
+  QualifiedName qualifierName = null;
+}
+{
+  (
+    literalToken=<INTEGER>
+    |   
+    literalToken=<BOOLEAN>
+    |
+    literalToken=<DOUBLE>
+    |
+    literalToken=<STRING>
+    |
+    literalToken=<DECIMAL>
+    |  
+    (
+      literalToken=<CURRENCY> ( "." ccToken=<IDENTIFIER> )?
+      ( LOOKAHEAD(2) "@" ( identifier=<IDENTIFIER> | stringToken=<STRING_LITERAL> ) )?
+    )
+    |
+    literalToken=<COMPLEX>
+  )
+  { 
+    intercept(literalToken, compiler);
+    Unit literalUnit = unit(literalToken);
+    source = literalToken.image;
+    String qualifier = "";
+    if (ccToken != null) {
+      source += ("." + ccToken.image);
+      qualifier = ccToken.image;
+    }
+    if (identifier != null) {
+       source += (" @" + identifier.image);
+       qualifierName = compiler.name(identifier.image, true, false);
+    } else if (stringToken != null) {
+      source += (" @ " + stringToken.image);
+      qualifier += ("@" + getText(stringToken));
+    } 
+    return compiler.getVariableArtifact().variableSpec(literalUnit.getKind(), qualifier, qualifierName, source);
+  }
+}
+
+IVariableSpec ListType(Compiler compiler) :
+{
+  Token delimitToken;
+  Token axiomToken = null;
+  IVariableSpec varSpec = null;
+  String source;
+}
+{
+  delimitToken="<" ( varSpec=Type(compiler) | axiomToken=<AXIOM>  | <TERM> ) ">" 
+  {
+    intercept(delimitToken, compiler);
+    if (varSpec != null) {
+      source = "<" + varSpec.getSource() + ">";
+      varSpec.setSource(source);
+    } else if (axiomToken != null) {
+      varSpec = compiler.getVariableArtifact().variableSpec(TaqLiteral.axiom, null, null, "<axiom>");
+    } else {
+      varSpec = compiler.getVariableArtifact().variableSpec(TaqLiteral.term, null, null, "<term>");
+    }
+    return varSpec;
+  }
+}  
+
+QualifiedName AxiomName(Compiler compiler) :
+{
+  QualifiedName axiomName;
+}
+{
+  axiomName=Name(compiler, true, false)
+  { 
+    axiomName = compiler.axiomName(axiomName);
+    return axiomName;
+  }
+}
+
+void AxiomSpecification(QualifiedName qualifiedAxiomName, boolean isList, boolean isExport, Compiler compiler) :
+{
+  String termNames;
+  int count = 0;
+  resetItemToken();
+}
+{
+  (
+    termNames=TermHeader(qualifiedAxiomName, isList, isExport, compiler)
+    {
+      compiler.addSourceItem(termNames, unit(itemToken), extent(token));
+    } 
+  )?
+  ( 
+    AxiomItem(qualifiedAxiomName, isExport, compiler) { ++count; }
+  )+
+  {
+     if (!isList && (count > 1))
+       throw new SyntaxException("Use \"list\" keyword to specify more than one axiom");
+  }
+}
+
+void AxiomItem(QualifiedName qualifiedAxiomName, boolean isExport, Compiler compiler) :
+{
+  Token braceToken;
+  Token delimitToken;
+}
+{
+  braceToken=<LBRACE> 
+  {
+    compiler.addSourceItem(braceToken.image, unit(braceToken), extent(braceToken));
+  }
+  ( <BIT_OR> )? Fact(qualifiedAxiomName, isExport, compiler) 
+  ( LOOKAHEAD(2) 
+    ( delimitToken="," | delimitToken=<BIT_OR> )
+    {
+      compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+    }
+    Fact(qualifiedAxiomName, isExport, compiler)  
+  )* 
+  ( <BIT_OR>)? 
+  braceToken=<RBRACE> 
+  {
+    compiler.appendSourceItem(extent(braceToken), braceToken.image);
+    compiler.getAxiomInterface().axiomItem(qualifiedAxiomName);
+  }
+}
+
+void Fact(QualifiedName qualifiedAxiomName, boolean isExport, Compiler compiler) :
+{
+  Token unknownToken;
+  IOperand operand;
+  Parameter param = null;
+  resetItemToken();
+}
+{
+  (
+    ( 
+      param=LiteralTerm(compiler) 
+      | 
+      param=List(isExport, compiler) 
+      | 
+      operand=TypedLiteralTerm(compiler) { param = operand.toParameter(); }
+      |
+      param=Function(compiler)
+    )
+    {
+      compiler.getAxiomInterface().fact(qualifiedAxiomName, param);
+    }
+    |
+    unknownToken=<NAN>
+    {
+      intercept(unknownToken, compiler);
+      param = compiler.getAxiomInterface().nan(qualifiedAxiomName);
+    }
+    |
+    unknownToken=<QMARK>
+    {
+      intercept(unknownToken, compiler);
+      param = compiler.getAxiomInterface().blank(qualifiedAxiomName);
+    }
+  )
+  {
+    compiler.appendSourceItem(extent(token), display(param.getValue()));
+  }
+}
+
+Parameter List(boolean isExport, Compiler compiler) :
+{
+  Token listToken;
+  QualifiedName target = null;
+ }
+{
+  listToken=<LIST> target=Name(compiler, true, false)
+  {
+	compiler.addSourceItem(listToken.image + " " + target.toString(), unit(listToken), extent(token));
+ 	return compiler.getVariableArtifact().getListVariable(target, isExport).toParameter();
+  }
+}
+
+IOperand TypedLiteralTerm(Compiler compiler) :
+{
+  IVariableSpec varSpec;
+  Parameter literal;
+  resetItemToken();
+}
+{
+  varSpec=Type(compiler) literal=LiteralTerm(compiler)
+  {
+    compiler.appendSourceItem(extent(itemToken), varSpec.getSource(), " ", literal.toString() );
+    return compiler.getLiteralArtifact().typedLiteralTerm(varSpec, literal);
+  }
+}
+
+Parameter Function(Compiler compiler) :
+{
+  Token name;
+  Token library;
+  Token quoteToken;
+  String arguments = null;
+  List<Term> termList = new ArrayList<Term>();
+}
+{
+  library=<IDENTIFIER>
+  {
+    intercept(library, compiler);
+  }
+  "." name=<IDENTIFIER> 
+  ( arguments=TermList(termList, compiler) )?
+  {
+    String source = library.image + "." + name.image;
+    if (arguments != null)
+      source += arguments;
+    compiler.appendSourceItem(extent(name), source);
+    return compiler.getFunctionFactoryArtifact().function(library.image, name.image, termList);
+  }
+}
+
+String TermList(List<Term> termList, Compiler compiler) :
+{
+  String term;
+  StringBuilder builder = new StringBuilder("(");
+}
+{
+  "(" 
+  (
+    term=TermDeclaration(termList, compiler)
+    { 
+      builder.append(term);
+    }
+    (
+      "," 
+      term=TermDeclaration(termList, compiler) 
+      {
+        builder.append(',').append(term);
+      }
+    )* 
+  )?
+  ")"
+  {
+    builder.append(')');
+    return builder.toString();
+  }
+}
+
+String TermDeclaration(List<Term> termList, Compiler compiler) :
+{
+  Parameter param;
+  IOperand operand;
+  String name = Term.ANONYMOUS;
+}
+{
+  ( LOOKAHEAD(2) Name(compiler, false, false) { name = currentName; } "=" )? 
+  (
+    param=LiteralTerm(compiler)
+    |
+    operand=TypedLiteralTerm(compiler) { param = operand.toParameter(); }
+  )
+  {
+     String value = display(param.getValue());
+     termList.add(new Parameter(name, param.getValue()));
+     if (name.isEmpty())
+       return value;
+     return name + "="+value;
+  }
+}
+
+String TermHeader(QualifiedName qualifiedAxiomName, boolean isList, boolean isExport, Compiler compiler) :
+{
+  Token encloseToken;
+  String termName;
+  StringBuilder builder = new StringBuilder();
+  if (isList)
+    compiler.getAxiomInterface().createAxiomItemList(qualifiedAxiomName, isExport);
+  else
+    compiler.getAxiomInterface().createAxiom(qualifiedAxiomName, isExport);
+}
+{
+  encloseToken="(" { intercept(encloseToken, compiler); }
+  {
+    builder.append('(');
+  } 
+     ( termName=TermName(qualifiedAxiomName, compiler) 
+        {
+          builder.append(termName);
+        }
+        ( 
+          "," termName=TermName(qualifiedAxiomName, compiler)
+          {
+            builder.append(',').append(termName);
+          } 
+        )* 
+     )?  
+  ")" 
+  {
+    builder.append(')');
+    return builder.toString();
+  } 
+}
+
+List<String> DynamicTermHeader(Compiler compiler) :
+{
+  Token encloseToken;
+  Token nameToken;
+  String termName;
+  List<String> termNameList = new ArrayList<String>();
+  StringBuilder builder = new StringBuilder();
+}
+{
+  encloseToken="(" 
+  {
+    builder.append(encloseToken.image);
+  } 
+  nameToken=<IDENTIFIER>
+  {
+    termName = nameToken.image;
+    builder.append(termName);
+    termNameList.add(termName);
+  }
+  ( 
+    "," nameToken=<IDENTIFIER>
+    {
+      termName = nameToken.image;
+      builder.append(',').append(termName);
+      termNameList.add(termName);
+    } 
+  )* 
+  encloseToken=")" 
+  {
+    builder.append(encloseToken.image);
+    compiler.appendSourceItem(extent(encloseToken), builder.toString());
+    return termNameList;
+  } 
+}
+
+String TermName(QualifiedName qualifiedAxiomName, Compiler compiler) :
+{
+  Token nameToken;
+}
+{
+  nameToken=<IDENTIFIER>
+  {
+    compiler.getAxiomInterface().addAxiomTermName(qualifiedAxiomName, nameToken.image);
+    return nameToken.image;
+  }
+}
+
+
+QualifiedName Name(Compiler compiler, boolean isContextName, boolean isDeclaration) :
+{
+  Token pathToken;
+  Token partToken1;
+  Token partToken2;
+  StringBuilder builder = new StringBuilder();
+}
+{ 
+  (
+    ( 
+      pathToken="/" 
+      {
+        intercept(pathToken, compiler);
+        builder.append('/');
+      }
+      partToken1=<IDENTIFIER>  
+      {
+        builder.append(partToken1.image);
+      }  
+    )
+    |
+    (  
+      pathToken="@" 
+      {
+        intercept(pathToken, compiler);
+        builder.append('@');
+      }
+      partToken1=<IDENTIFIER> "." partToken2=<IDENTIFIER>
+      {
+        builder.append(partToken1.image).append('.').append(partToken2.image);
+      }
+    )
+    |
+    (
+      partToken1=<IDENTIFIER> 
+      {
+        intercept(partToken1, compiler);
+        builder.append(partToken1.image);
+      }
+      ( LOOKAHEAD(2) NamePart(builder) )?
+    )
+  )
+  {
+    currentName = builder.toString();
+    return compiler.name(currentName, isContextName, isDeclaration);
+  }
+}
+
+QualifiedName AxiomKeyName(Compiler compiler) :
+{
+  Token partToken1;
+  Token dotToken = null;
+  Token atToken = null;
+  Token partToken2 = null;
+  StringBuilder builder = new StringBuilder();
+}
+{
+  partToken1=<IDENTIFIER> ( ( dotToken="." | atToken="@" ) ( partToken2=<IDENTIFIER> )? )?
+  {
+    intercept(partToken1, compiler);
+    boolean hasName2 = (partToken2 != null);
+    if (hasName2 && (dotToken != null)) {
+      currentName = partToken1.image + "." + partToken2.image;
+      builder.append(partToken2.image).append('@').append(partToken1.image);
+    } else if (hasName2 && (atToken != null)) {
+      currentName = partToken1.image + "@" + partToken2.image;
+      builder.append(currentName);
+    } else if (atToken != null) {
+      currentName = partToken1.image + "@";
+      builder.append(currentName);
+    } else if (dotToken == null) {
+      currentName = partToken1.image;
+      builder.append(partToken1.image).append('@').append(compiler.getScopeName());
+    } else
+        throw new SyntaxException("Invalid axiom key name: " + partToken1.image + ".");
+    return compiler.name(builder.toString(), false, false);
+  }
+}
+
+QualifiedName TemplateName(Compiler compiler) :
+{
+  Token partToken1;
+  Token dotToken = null;
+  Token atToken = null;
+  Token partToken2 = null;
+  StringBuilder builder = new StringBuilder();
+}
+{
+  ( atToken="@" { intercept(atToken, compiler); } )? 
+  partToken1=<IDENTIFIER>  { intercept(partToken1, compiler); } 
+  ( dotToken="." partToken2=<IDENTIFIER> )?
+  {
+    boolean hasName2 = partToken2 != null;
+    if (hasName2) {
+      currentName = partToken1.image + "." + partToken2.image;
+      if (atToken != null) {
+        currentName = "@" + currentName;
+        builder.append(currentName);
+      } else
+        builder.append('@').append(partToken1.image).append('.').append(partToken2.image);
+    } else {
+      currentName = partToken1.image;
+      builder.append('@').append(compiler.getScopeName()).append('.').append(partToken1.image);
+    }
+    return compiler.name(builder.toString(), false, false);
+  }
+}
+
+
+void NamePart(StringBuilder builder) :
+{
+  Token partToken = null;
+}
+{ 
+  (  
+    "@" ( LOOKAHEAD(2) partToken=<IDENTIFIER> )?
+    {
+      builder.append('@');
+      if (partToken != null)
+        builder.append(partToken.image);
+    }
+  )
+  |
+  (
+    "." partToken=<IDENTIFIER>
+    {
+      builder.append('.').append(partToken.image);
+    } 
+    (
+      "." partToken=<IDENTIFIER>
+      {
+        builder.append('.').append(partToken.image);
+      } 
+    )?
+  )
+}
+
+void InitialiserList(InitialProperties properties, Compiler compiler) :
+{
+  Token delimitToken;
+}
+{
+  delimitToken="(" 
+  {
+    compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+  }
+  InitialiserDeclaration(properties, compiler)
+  (
+    delimitToken=","  
+    {
+      compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+    }
+    InitialiserDeclaration(properties, compiler) 
+  )*
+  delimitToken=")"
+  {
+    compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+  }
+}
+
+String InitialiserDeclaration(InitialProperties properties, Compiler compiler) :
+{
+  String name;
+  QualifiedName qname;
+  Parameter param;
+}
+{
+  qname=Name(compiler, false, false) "=" param=LiteralTerm(compiler)
+  {
+    compiler.appendSourceItem(extent(itemToken), currentName, "=", display(param.getValue()));
+    return properties.initializerDeclaration(qname, param.getValue());
+  }
+}
+
+Parameter LiteralTerm(Compiler compiler) :
+{
+  Token lit;
+  Token minus = null;
+  Parameter param;
+  boolean flag;
+}
+{ LOOKAHEAD(2)
+  ( ( minus="-" )? lit=<INTEGER_LITERAL> )
+  {
+    intercept(lit, compiler);
+    param = new IntegerTerm(minus == null ? lit.image : minus.image + lit.image);
+    return param;
+  }
+  |
+  ( ( minus="-" )? lit=<FLOATING_POINT_LITERAL> )
+  {
+    intercept(lit, compiler);
+    param = new DoubleTerm(minus == null ? lit.image : minus.image + lit.image);
+    return param;
+  }
+  |
+  lit=<STRING_LITERAL>
+  {
+    intercept(lit, compiler);
+    param = new StringTerm(getText(lit));
+    return param;
+  }
+  |
+  flag=BooleanLiteral(compiler)
+  {
+    return new BooleanTerm(flag);
+  }
+  |
+  UnknownLiteral(compiler)
+  {
+    return new LiteralParameter(Term.ANONYMOUS, new Unknown(), LiteralType.unknown);
+  }
+}
+
+boolean BooleanLiteral(Compiler compiler) :
+{
+  Token lit;
+}
+{
+  lit=<TRUE> 
+  { 
+    intercept(lit, compiler);
+    return true; 
+  }
+  |
+  lit=<FALSE> 
+  { 
+    intercept(lit, compiler);
+    return false; 
+  }
+}
+
+void UnknownLiteral(Compiler compiler) :
+{
+  Token lit;
+}
+{
+  lit=<UNKNOWN>
+  {
+     intercept(lit, compiler);
+  }
+}
+
+void Include(Compiler compiler) :
+{
+  Token keywordToken = null;
+  Token includeToken = null;
+  currentNonTerminal = "Include"; 
+  compiler.setSourceMarker(currentNonTerminal);
+}
+{
+  keywordToken=<INCLUDE> includeToken=<STRING_LITERAL>
+  {
+    compiler.addSourceItem(keywordToken.image + " " + includeToken.image, unit(keywordToken), extent(token));
+    compiler.includeResource(getText(includeToken));
+  }
+}
+
+IOperand Expression(Compiler compiler) :
+{
+  IOperand param;
+  Token assignToken = null;
+  IOperand assignOperand = null;
+  if (currentNonTerminal.equals(SourceTracker.INPUT)) {
+    currentNonTerminal = "Expression";
+    compiler.setSourceMarker(currentNonTerminal);
+    setSentinal();
+  }
+}
+{ 
+  param=ConditionalOrExpression(compiler) 
+  ( ( assignToken=<ASSIGN>
+        | assignToken=<PLUSASSIGN>
+        | assignToken=<MINUSASSIGN>
+        | assignToken=<STARASSIGN>
+        | assignToken=<SLASHASSIGN>
+        | assignToken=<ANDASSIGN>
+        | assignToken=<ORASSIGN>
+        | assignToken=<XORASSIGN>
+        | assignToken=<REMASSIGN>
+        | assignToken=<LSHIFTASSIGN>
+        | assignToken=<RSIGNEDSHIFTASSIGN>
+        | assignToken=<RUNSIGNEDSHIFTASSIGN>
+    )
+    {
+      compiler.appendSourceItem(extent(assignToken), assignToken.image);
+    }
+    assignOperand=Expression(compiler)
+  )? 
+  {
+    if (assignOperand == null)
+      return param;
+    return compiler.getTermFactoryArtifact().expression(param, assignToken.image, assignOperand);
+  }
+}
+
+
+Group GroupDeclaration(Compiler compiler) :
+{
+  Group group = new Group();
+}
+{ 
+  "(" Group(group, compiler) ( "," Group(group, compiler) )* ")"
+  {
+    return group;
+  }
+}
+
+ 
+void Group(Group group, Compiler compiler) :
+{
+  Token groupToken;
+}
+{
+  groupToken=<IDENTIFIER> 
+  {
+    compiler.addSourceItem(groupToken.image, unit(groupToken), extent(groupToken));
+    compiler.getRegularExpressionArtifact().group(group, groupToken.image);
+  }
+}
+
+
+
+int RegexFlags(Compiler compiler) :
+{
+  int flags = 0;
+  Token flagToken;
+  Token openToken = null;
+  Token closeToken = null;
+  StringBuilder builder = new StringBuilder();
+}
+{
+  openToken="(" 
+  { 
+    builder.append(openToken.image);
+  }
+  ( 
+    flagToken=<IDENTIFIER>
+    {
+      builder.append(' ').append(flagToken.image);
+      flags |= compiler.getRegularExpressionArtifact().mapRegexFlag(flagToken.image);
+    }
+  )*
+  closeToken=")"
+  {
+    builder.append(' ').append(closeToken.image);
+    compiler.addSourceItem(builder.toString(), unit(openToken), extent(closeToken));
+    return flags;
+  }
+}
+
+IOperand ConditionalOrExpression(Compiler compiler) :
+{
+  Token op;
+  IOperand[] params = new IOperand[2];
+}
+{ 
+  params[0]=ConditionalAndExpression(compiler)
+  ( 
+    op="||" 
+    {
+      compiler.appendSourceItem(extent(token), op.image);
+    }
+    params[1]=ConditionalAndExpression(compiler) 
+    {
+      params[0] = compiler.evaluationExpression(params[0], op.image, params[1]);
+    }
+  )*
+  {
+    return params[0];
+  } 
+}
+
+IOperand ConditionalAndExpression(Compiler compiler) :
+{
+  Token op;
+  IOperand[] params = new IOperand[2];
+}
+{
+  params[0]=InclusiveOrExpression(compiler)
+  ( 
+    op="&&" 
+    {
+      compiler.appendSourceItem(extent(token), op.image);
+    }
+    params[1]=InclusiveOrExpression(compiler) 
+    {
+      params[0] = compiler.evaluationExpression(params[0], op.image, params[1]);
+    }
+  )*
+  {
+    return params[0];
+  }
+}
+
+IOperand InclusiveOrExpression(Compiler compiler) :
+{
+  Token op;
+  IOperand[] params = new IOperand[2];
+}
+{
+  params[0]=ExclusiveOrExpression(compiler)
+  ( 
+    op="|" 
+    {
+      compiler.appendSourceItem(extent(token), op.image);
+    }
+    params[1]=ExclusiveOrExpression(compiler) 
+    {
+       params[0] = compiler.evaluationExpression(params[0], op.image, params[1]);
+    }
+  )*
+  {
+    return params[0];
+  }
+}
+
+IOperand ExclusiveOrExpression(Compiler compiler) :
+{
+  Token op;
+  IOperand[] params = new IOperand[2];
+}
+{
+  params[0]=AndExpression(compiler)
+  ( 
+    op="^" 
+    {
+      compiler.appendSourceItem(extent(token), op.image);
+    }
+    params[1]=AndExpression(compiler) 
+    {
+       params[0] = compiler.evaluationExpression(params[0], op.image, params[1]);
+    }
+  )*
+  {
+    return params[0];
+  }
+}
+
+IOperand AndExpression(Compiler compiler) :
+{
+  Token op;
+  IOperand[] params = new IOperand[2];
+}
+{
+  params[0]=EqualityExpression(compiler)
+  ( 
+    op="&" 
+    {
+      compiler.appendSourceItem(extent(token), op.image);
+    }
+    params[1]=EqualityExpression(compiler) 
+    {
+      params[0] = compiler.evaluationExpression(params[0], op.image, params[1]);
+    }
+  )*
+  {
+    return params[0];
+  }
+}
+
+IOperand EqualityExpression(Compiler compiler) :
+{
+  Token op;
+  IOperand[] params = new IOperand[2];
+}
+{ 
+  params[0]=RelationalExpression(compiler)
+  ( 
+    ( 
+    op="==" 
+    | 
+    op="!=" 
+    )  
+    {
+      compiler.appendSourceItem(extent(token), op.image);
+    }
+    params[1]=RelationalExpression(compiler) 
+    {
+       params[0] = compiler.evaluationExpression(params[0], op.image, params[1]);
+    }
+  )*
+  {
+    return params[0];
+  }
+}
+
+IOperand RelationalExpression(Compiler compiler) :
+{
+  Token op;
+  IOperand[] params = new IOperand[2];
+}
+{
+  params[0]=ShiftExpression(compiler)
+  ( 
+    ( 
+    op="<" 
+    | 
+    op=">" 
+    |
+    op="<=" 
+    | 
+    op=">=" 
+    ) 
+    {
+      compiler.appendSourceItem(extent(token), op.image);
+    }
+    params[1]=ShiftExpression(compiler) 
+    {
+      params[0] = compiler.evaluationExpression(params[0], op.image, params[1]);
+    }
+  )*
+  {
+    return params[0];
+  }
+}
+
+IOperand ShiftExpression(Compiler compiler):
+{
+  Token op;
+  IOperand[] params = new IOperand[2];
+}
+{
+  params[0]=AdditiveExpression(compiler) 
+  (   
+    ( 
+      op=<LSHIFT> 
+      | 
+      op=<RSIGNEDSHIFT> 
+      | 
+      op=<RUNSIGNEDSHIFT> 
+    ) 
+    {
+      compiler.appendSourceItem(extent(token), op.image);
+    }
+    params[1]=AdditiveExpression(compiler) 
+    {
+      params[0] = compiler.evaluationExpression(params[0], op.image, params[1]);
+    }
+  )*
+  {
+    return params[0];
+  }
+}
+
+IOperand AdditiveExpression(Compiler compiler) :
+{
+  Token op;
+  IOperand[] params = new IOperand[2];
+}
+{ 
+  params[0]=MultiplicativeExpression(compiler)
+  ( LOOKAHEAD(2) 
+    ( 
+    op="+" 
+    | 
+    op="-" 
+    ) 
+    {
+      compiler.appendSourceItem(extent(token), op.image);
+    }
+    params[1]=MultiplicativeExpression(compiler) 
+    {
+      params[0] = compiler.evaluationExpression(params[0], op.image, params[1]);
+    }
+  )*
+  {
+    return params[0];
+  }
+}
+
+IOperand MultiplicativeExpression(Compiler compiler) :
+{
+  Token op;
+  IOperand[] params = new IOperand[2];
+}
+{
+  params[0]=UnaryExpression(compiler)
+  ( LOOKAHEAD(2) 
+    ( 
+    op="*" 
+    | 
+    op="/" 
+    | 
+    op="%" 
+    )
+    {
+      intercept(op, compiler);
+      compiler.appendSourceItem(extent(token), op.image);
+    }
+    params[1]=UnaryExpression(compiler) 
+    {
+      params[0] = compiler.evaluationExpression(params[0], op.image, params[1]);
+    }
+  )*
+  {
+    return params[0];
+  } 
+}
+
+IOperand UnaryExpression(Compiler compiler) :
+{
+  Token unaryToken;
+  IOperand param;
+}
+{ 
+  (  
+    unaryToken="+"
+    | 
+    unaryToken="-"
+  )
+  {
+    intercept(unaryToken, compiler);
+    compiler.appendSourceItem(extent(token), unaryToken.image);
+  }
+  param=UnaryExpression(compiler)
+  { 
+    return compiler.getExpressionArtifact().unaryExpression(unaryToken.image, param);
+  }
+  | 
+  (
+    param=PreIncrementExpression(compiler)
+    |
+    param=PreDecrementExpression(compiler)
+    |
+    ( LOOKAHEAD(2)
+      param=UnaryExpressionNotPlusMinus(compiler)
+      |
+      param=FactTerm(compiler)
+    )
+  )
+  {
+    return param;
+  }
+}
+
+IOperand PreIncrementExpression(Compiler compiler) :
+{
+  Token unaryToken;
+  Token nameToken;
+  IOperand param;
+}
+{ 
+  unaryToken=<INCR>
+  {
+    intercept(unaryToken, compiler);
+    compiler.appendSourceItem(extent(token), unaryToken.image);
+  }
+  param=PrimaryExpression(compiler)
+  {
+     return compiler.getExpressionArtifact().unaryExpression("++", param);
+  }
+}
+
+IOperand PreDecrementExpression(Compiler compiler) :
+{
+  Token unaryToken;
+  Token nameToken;
+  IOperand param;
+}
+{
+  unaryToken="--"
+  {
+    intercept(unaryToken, compiler);
+    compiler.appendSourceItem(extent(token), unaryToken.image);
+  }
+  param=PrimaryExpression(compiler)
+  {
+    return compiler.getExpressionArtifact().unaryExpression("--", param);
+  }
+}
+
+IOperand FactTerm(Compiler compiler) :
+{
+  Token factToken = null;
+  Token nameToken = null;
+  Token postfixToken = null;
+  QualifiedName qname = null;
+  TermArtifact parserTerm = null;
+  ListReference listReference = null;
+  IOperand operand;
+}
+{ 
+  ( 
+    ( 
+      factToken=<FACT> nameToken=<IDENTIFIER> 
+      {
+        qname = compiler.name(nameToken.image, true, false);
+      }
+      ( 
+        (
+          listReference=IndexExpression(compiler) 
+          |  
+          (   
+            postfixToken=<INCR>
+            | 
+            postfixToken=<DECR>
+          )
+        )
+        {
+          parserTerm = parserTerm = compiler.termArtifactInstance(null, qname, listReference);
+        }
+      )?
+    )
+  )
+  {
+     compiler.appendSourceItem(extent(token), factToken.image + " " + nameToken.image);
+     if (listReference != null) {
+       TermArtifact referenceTerm = compiler.termArtifactInstance(parserTerm.getVarSpec(), parserTerm.getQname(), listReference);
+       return compiler.getTermFactoryArtifact().createFact(referenceTerm);
+     }
+     else if (postfixToken != null)
+       return compiler.getTermFactoryArtifact().createFact(parserTerm, postfixToken.image);
+     else
+       return compiler.getTermFactoryArtifact().createFact(qname);
+  }
+}
+
+IOperand UnaryExpressionNotPlusMinus(Compiler compiler) :
+{
+  Token unaryToken;
+  IOperand param;
+}
+{ 
+  ( 
+    (
+      unaryToken="!" 
+      |
+      unaryToken="~"
+    ) 
+    {
+      intercept(unaryToken, compiler);
+      compiler.appendSourceItem(extent(token), unaryToken.image);
+    }
+    param=UnaryExpression(compiler)
+    {
+      return compiler.getExpressionArtifact().unaryExpression(unaryToken.image, param);
+    }
+  )
+  |
+  param=PostfixExpression(compiler)  
+  {
+    return param;
+  }
+}
+
+
+IOperand PostfixExpression(Compiler compiler) :
+{
+  Token paramToken = null;
+  Token postfixToken = null;
+  IOperand param;
+}
+{ 
+  param=PrimaryExpression(compiler)
+  (   
+    postfixToken=<INCR>
+    | 
+    postfixToken=<DECR>
+  )?
+  {
+    if (postfixToken != null) 
+    {
+      compiler.appendSourceItem(extent(token), postfixToken.image);
+      return compiler.getExpressionArtifact().postfixExpression(param, postfixToken.image);
+    } else {
+      return param;
+    }
+  } 
+}
+
+IOperand PrimaryExpression(Compiler compiler) :
+{
+  Token encloseToken;
+  Token scopeToken;
+  Token name;
+  QualifiedName qname;
+  IOperand param1 = null;
+  ListReference listReference;
+}
+{
+  
+  param1=Literal(compiler)
+  {
+    compiler.appendSourceItem(extent(token), param1.toString());
+    return param1;
+  }
+  |
+  qname=Name(compiler, true, false) 
+    (LOOKAHEAD(2) 
+    param1=NamedExpression(compiler.getListFactoryArtifact().getListName(qname, currentName), compiler) )?
+  {
+    if (param1 != null)
+      return param1;
+    compiler.appendSourceItem(extent(token), currentName);
+    return compiler.getExpressionArtifact().primaryExpression(qname);
+  }
+  |
+  (
+    encloseToken="(" 
+    {
+      intercept(encloseToken, compiler); 
+      compiler.appendSourceItem(extent(encloseToken), encloseToken.image);
+    }
+    param1 = Expression(compiler) 
+    encloseToken=")" 
+    {
+      compiler.appendSourceItem(extent(encloseToken), encloseToken.image);
+    }
+  )
+  {
+    compiler.flagEnclosedIfEvaluator(param1);
+    return param1;
+  }
+  |
+  (
+    scopeToken=<SCOPE> 
+    {
+      intercept(scopeToken, compiler); 
+      compiler.appendSourceItem(extent(token), scopeToken.image);
+    }
+    (
+      listReference=IndexExpression(compiler)
+      {    
+        return compiler.getScopeArtifact().createScopeParam(listReference);
+      }
+      |
+      "." name=<IDENTIFIER> 
+      {
+        compiler.appendSourceItem(extent(token), "." + name.image);
+        return compiler.getFunctionFactoryArtifact().createScopeFunction(QualifiedName.SCOPE, name.image);
+      }
+    )
+  )
+}
+
+IOperand Literal(Compiler compiler) :
+{
+  Token lit;
+  boolean flag;
+}
+{
+  lit=<INTEGER_LITERAL>
+  {
+     intercept(lit, compiler);
+     return compiler.getLiteralArtifact().literal(Long.decode(lit.image));
+  }
+  |
+  lit=<FLOATING_POINT_LITERAL>
+  {
+    intercept(lit, compiler);
+    return compiler.getLiteralArtifact().literal(Double.valueOf(lit.image));
+  }
+  |
+  lit=<STRING_LITERAL>
+  {
+    intercept(lit, compiler);
+    return compiler.getLiteralArtifact().literal(String.valueOf(getText(lit)));
+  }
+  |
+  flag=BooleanLiteral(compiler)
+  {
+    return compiler.getLiteralArtifact().literal(flag);
+  }
+  |
+  UnknownLiteral(compiler)
+  {
+    return compiler.getLiteralArtifact().literal(new Unknown());
+  }
+}
+
+IOperand LiteralSet(Compiler compiler) :
+{
+  Token braceToken;
+  List<Parameter> literalList = null;
+}
+{
+  braceToken=<LBRACE> 
+  literalList = LiteralList(compiler) 
+  braceToken=<RBRACE>
+  {
+    StringBuilder builder = new StringBuilder(" ");
+    builder.append('{');
+    for (Parameter item: literalList)
+      builder.append(display(item.getValue()));
+    builder.append('}');
+    compiler.appendSourceItem(extent(braceToken), builder.toString());
+    return compiler.getLiteralArtifact().literalSet(literalList);
+  }
+}
+
+IOperand NamedExpression(QualifiedName qname, Compiler compiler) :
+{
+  Token delimitToken;
+  IOperand operand;
+  ListReference listReference;
+  compiler.appendSourceItem(extent(token), currentName);
+}
+{
+  (
+    (
+      listReference=IndexExpression(compiler) 
+      {
+        operand = compiler.getListFactoryArtifact().listReference(qname, listReference);
+      }
+    )
+    |
+    operand=FunctionCall(compiler.functionArtifactInstance(qname, currentName), compiler) 
+  )
+  {
+    return operand;
+  }
+}
+
+IOperand FunctionCall(FunctionArtifact parserFunction, Compiler compiler) :
+{
+  Token delimitToken;
+  Token quoteToken = null;
+  ITemplate parameterTemplate = null;
+  ListReference listReference = null;
+  IOperand expression;
+  SourceItem sourceItem;
+  ChoiceArtifact choiceSpec;
+  IOperand operand;
+  ITemplate receiver = null;
+  TemplateArtifact parserTemplate = null;
+}
+{
+  (
+    itemToken="("
+    ( 
+      parameterTemplate = Parameters(currentName, compiler, true) 
+      {
+        parserFunction.setParametersTemplate(parameterTemplate);
+      }
+      |
+      quoteToken=<QUOTE>
+      {
+         parserFunction.setQuote(quoteToken.image);
+      }
+    )?
+    delimitToken=")" 
+    {
+      if (parameterTemplate != null)
+        compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+      else
+        compiler.appendSourceItem(extent(delimitToken), itemToken.image + delimitToken.image);
+      operand = compiler.getFunctionFactoryArtifact().createCallOperand(parserFunction);
+    } 
+  )
+  ( LOOKAHEAD(2)
+    delimitToken="{" 
+    {
+      compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+    }
+    Receiver(parserFunction, compiler)
+    delimitToken="}" 
+    {
+      compiler.appendSourceItem(extent(delimitToken), delimitToken.image);
+    }
+  )?
+  ( 
+    listReference=IndexExpression(compiler) 
+    {
+      operand = compiler.getFunctionFactoryArtifact().setListReference(operand, listReference);
+    }
+  )?
+  {
+    return operand;
+  }
+}
+
+void Receiver(FunctionArtifact parserFunction, Compiler compiler) :
+{
+  Token delimitToken;
+  Token privateToken = null;
+  IOperand operand;
+  ITemplate template = compiler.getFunctionFactoryArtifact().createReceiverTemplate(parserFunction.getName(), parserFunction);
+  parserFunction.setReceiver(template);
+  TemplateArtifact parserTemplate = compiler.templateArtifactInstance(template);
+}
+{
+  (  ( privateToken=<DOT> )?
+    operand=Flow(parserTemplate, compiler)
+    {
+      if (privateToken != null) {
+        operand.setPrivate(true);
+        privateToken = null;
+      }
+      template.addTerm(operand);
+    }
+  )
+  (
+    delimitToken="," 
+    (  ( privateToken=<DOT> )?
+      operand=Flow(parserTemplate, compiler)
+      {
+        if (privateToken != null) {
+          operand.setPrivate(true);
+          privateToken = null;
+        }
+        template.addTerm(operand);
+      }
+    )
+  )* 
+  {
+    compiler.getFunctionFactoryArtifact().popReceiver(parserFunction);
+    parserTemplate.adjustContextName();
+  }
+}
+
+ListReference IndexExpression(Compiler compiler) :
+{
+  DualIndex index1;
+  DualIndex index2 = null;
+}
+{ 
+   index1 = ListSelection(compiler) ( LOOKAHEAD(2)  index2 = ListSelection(compiler) )?
+   {
+     if (index2 == null)
+       return new ListReference(index1);
+     else
+       return new ListReference(index1, index2);
+   }
+}
+
+DualIndex ListSelection(Compiler compiler) :
+{
+  Token name;
+  Token lbracket;
+  Token rbracket;
+  Token rarrow;
+  IOperand param;
+  ExpressionIndex expressionIndex = null;
+  NameIndex nameIndex = null;
+}
+{
+(
+  ( 
+    lbracket=<LBRACKET> 
+    {
+      compiler.appendSourceItem(extent(lbracket), lbracket.image);
+    }
+    param=Expression(compiler) 
+    rbracket=<RBRACKET> ) 
+    {
+      compiler.appendSourceItem(extent(rbracket), rbracket.image);
+      expressionIndex = compiler.expressionIndexInstance(param);
+    }
+    | 
+    ( rarrow=<RARROW> name=<IDENTIFIER> )
+    {
+      compiler.appendSourceItem(extent(token), rarrow.image + name.image);
+      nameIndex = new NameIndex(rarrow.image, name.image);
+    }
+  )
+  {
+    if (expressionIndex != null)
+      return new DualIndex(expressionIndex);
+    else
+      return new DualIndex(nameIndex);
+  }
+}
+
+void ScopeDeclaration(Compiler compiler) :
+{
+  Token scopeToken;
+  Token nameToken;
+  InitialProperties properties = new InitialProperties();
+  if (currentNonTerminal.equals(SourceTracker.INPUT)) {
+    currentNonTerminal = "ScopeDeclaratioo"; 
+    compiler.setSourceMarker(currentNonTerminal);
+  }
+}
+{
+  scopeToken=<SCOPE> nameToken=<IDENTIFIER> 
+  {
+    compiler.addSourceItem(scopeToken + " " + nameToken.image, unit(scopeToken), extent(nameToken));
+  }  
+  ( InitialiserList(properties, compiler) )?
+  {
+    compiler.getScopeArtifact().createScope(nameToken.image, properties);
+  }
+  (
+    "{" 
+    ( LOOKAHEAD(2) Statement(compiler) | QueryChain(compiler) | FunctionDeclaration(compiler) )*
+    "}"
+  ) ? 
+  {
+    compiler.getScopeArtifact().resetScope();
+  }
+}

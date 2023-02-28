@@ -1,0 +1,141 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>au.com.cybersearch2</groupId>
+    <artifactId>taq-head</artifactId>
+    <version>1.0.3-SNAPSHOT</version>
+  </parent>
+  <artifactId>taq-simplelogging</artifactId>
+  <name>j256 Simple Logging</name>
+  <description>Small logging facade that backends to a number of standard logging packages</description>
+  <url>https://github.com/j256/simplelogging</url>
+  <licenses>
+	<license>
+		<name>ISC License</name>
+		<distribution>repo</distribution>
+		<url>https://opensource.org/licenses/ISC</url>
+	</license>
+  </licenses>
+  
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	<!-- optional dependencies -->
+	<commons-logging-version>1.2</commons-logging-version>
+	<slf4j-version>1.7.32</slf4j-version>
+	<android-version>4.1.1.4</android-version>
+	<logback.version>1.2.10</logback.version>
+	<aws-lambda-java-core-version>1.2.0</aws-lambda-java-core-version>
+	<maven-plugin-api-version>3.6.3</maven-plugin-api-version>
+	<!-- log4j version 1 is here for backwards compatibility -->
+	<log4j-version>1.2.17</log4j-version>
+	<!-- greater than 2.3.2 needs java 7+, this includes the 2.17.1 security fixes -->
+	<log4j2-version>2.3.2</log4j2-version>
+	</properties>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.3.0</version>
+        <executions>
+            <execution>
+                <phase>generate-sources</phase>
+                <goals>
+                    <goal>add-source</goal>
+                </goals>
+                <configuration>
+                    <sources>
+                        <source>src/provider</source>
+                    </sources>
+                </configuration>
+            </execution>
+        </executions>
+      </plugin>  
+	  <plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-javadoc-plugin</artifactId>
+		<executions>
+			<execution>
+				<goals>
+					<goal>jar</goal>
+				</goals>
+				<configuration>
+                    <doclint>all,-missing</doclint>
+                    <detectJavaApiLink>false</detectJavaApiLink>
+					<showPackage>false</showPackage>
+					<additionalparam>-tag inheritDoc:X -Xdoclint:none</additionalparam>
+		            <links>
+		               <link>https://docs.oracle.com/en/java/javase/11/docs/api/</link>
+		            </links>
+				</configuration>
+			</execution>
+		</executions>
+		<configuration>
+			<showPackage>false</showPackage>
+			<bottom>
+				This content is licensed by Gray Watson under the
+				&lt;a
+				href="https://creativecommons.org/licenses/by-sa/3.0/" &gt;Creative Commons Attribution-Share Alike 3.0 License.
+				&lt;/a&gt; </bottom>
+			<additionalparam>-tag inheritDoc:X -Xdoclint:none</additionalparam>
+			<excludePackageNames>
+			</excludePackageNames>
+		</configuration>
+	  </plugin>
+    </plugins>  
+  </build>
+
+  <dependencies>
+		<!-- optional dependencies that will only be used if you provide the dependencies yourself -->
+		<!--
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>${logback.version}</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>${slf4j-version}</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>${slf4j-version}</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging</artifactId>
+			<version>${commons-logging-version}</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>${log4j-version}</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>
+			<version>${log4j2-version}</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.google.android</groupId>
+			<artifactId>android</artifactId>
+			<version>${android-version}</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-lambda-java-core</artifactId>
+			<version>${aws-lambda-java-core-version}</version>
+			<optional>true</optional>
+		</dependency>
+		-->
+  </dependencies>
+</project>

@@ -1,0 +1,13 @@
+.classpath
+.factorypath
+/.settings/
+/target/
+/libs/
+/workspace/
+/.classpath
+/.factorypath
+/.settings/
+/bin/
+/pom.xml.releaseBackup
+/pom.xml.tag
+/taq.jar

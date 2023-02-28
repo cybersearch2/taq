@@ -1,0 +1,16 @@
+resource star_people (database="db/star-people"){}
+  (
+    star_people.set(user="sa", password="secret?")
+  )
+  
+scope star_person_sql(provider = "star_person.StarPersonProvider") {
+  function print(string resource_name)
+}
+
+flow report
+(
+  print("\nPerfect matches:\n"),
+  star_person_sql.print("star_people")
+)
+
+query show_perfect_matches(report)

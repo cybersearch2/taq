@@ -1,0 +1,7 @@
+include "mega_city.taq"
+
+template american_megacities (
+  Megacity, Country, Continent ? {"North America","South America"} 
+)
+
+query<axiom> american_megacities (mega_city : american_megacities)

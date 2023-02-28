@@ -1,0 +1,52 @@
+string color = "black"
+list<integer> rgb = { 0, 0, 0 }
+
+axiom color_axiom 
+  (name, red, green, blue)
+  {"black", 0,   0,     0}
+
+template inverse
+{ list<term> term_list = list color_axiom }
+(
+  // Set inverse name
+. term_list->name = "white",
+  // Invert colors
+. term_list->red ^= 255, 
+. term_list->green ^= 255, 
+. term_list->blue ^= 255,
+  term color_axiom 
+)
+
+axiom list axiom_list 
+  (name, red, green, blue)
+  {"black", 0,   0,     0}
+
+template list_inverse
+(
+  // Set inverse name
+. name = axiom_list[0]->name = "white",
+  // Invert colors
+. red = axiom_list[0]->red ^= 255, 
+. green = axiom_list[0]->green ^= 255, 
+. blue = axiom_list[0]->blue ^= 255,
+  term axiom_list[0]
+)
+
+list<axiom> dyna_list 
+   (name, red, green, blue)
+   {color, rgb[0], rgb[1], rgb[2]}
+   
+template dyna_inverse
+(
+  // Set inverse name
+. dyna_list[0]->name = "white",
+  // Invert colors
+. dyna_list[0]->red ^= 255, 
+. dyna_list[0]->green ^= 255, 
+. dyna_list[0]->blue ^= 255,
+  term dyna_list[0]
+)
+
+query<term> color_query(inverse)
+query<term> dyna_query(dyna_inverse)
+query<term> list_query(list_inverse)

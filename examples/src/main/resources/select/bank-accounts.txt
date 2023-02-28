@@ -1,0 +1,18 @@
+bank_account(
+ prefix=456448,
+ bank=Bank of Queensland,
+ bsb=124-001,
+ account_type=cre
+)
+bank_account(
+ prefix=456445,
+ bank=Commonwealth Bank Aust.,
+ bsb=527-146,
+ account_type=sav
+)
+bank_account(
+ prefix=456443,
+ bank=Bendigo Bank LTD,
+ bsb=633-000,
+ account_type=chq
+)

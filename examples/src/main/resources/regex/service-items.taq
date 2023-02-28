@@ -1,0 +1,50 @@
+export axiom accumulator(total) { 0.0 }
+
+string servicePattern = "#([0-9]+)"
+string amountPattern = "(\\$[0-9]+\\.[0-9]+)"
+string scanPattern =   
+  "^Service "  + servicePattern + 
+  "\\s+" + amountPattern + "?$"
+
+pattern itemPattern scanPattern
+
+
+flow scan_items
+{
+  export list<axiom> charges,
+  list<term> summary = list accumulator,
+  cursor<string> item,
+  currency.USD amount
+}
+(
+  {
+    ? fact item,
+    amount = 0.0,
+    ? item++ # itemPattern ( service, amount )
+    {
+      summary->total += amount,
+      charges += axiom {
+        Service = service,
+        Amount = amount.format() 
+      } 
+    } 
+  }
+)
+
+query scan_service_items(items : scan_items)
+
+list<string> account_info = 
+{
+ "Invoice #00035", 
+ "Service #83057 $60.00",
+ "Service #93001       ",
+ "Service #10800 $30.00",
+ "Service #10661 $45.00",
+ "Service #00200       ",
+ "Service #78587 $15.00",
+ "Service #99585 $10.00",
+ "Service #99900  $5.00"
+}
+
+axiom items(item) { list account_info }
+

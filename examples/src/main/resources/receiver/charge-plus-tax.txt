@@ -1,0 +1,4 @@
+euro_total(Total=Gesamtkosten 14.567,89 EUR, Tax=18% Steuer, Locale=de_DE)
+euro_total(Total=le total 14 197,52 EUR, Tax=15% impôt, Locale=fr_FR)
+euro_total(Total=le total EUR 13.703,69, Tax=11% impôt, Locale=fr_BE)
+euro_total(Total=totale kosten EUR 13.703,69, Tax=11% belasting, Locale=nl_BE)

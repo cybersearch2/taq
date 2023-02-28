@@ -1,0 +1,16 @@
+axiom list stock (item, price)
+{ "mug", 5.66 }
+{ "cap", 15.00 }
+{ "t-shirt", 25.89 }
+
+template sale_format
+{ 
+  export list<string> memorabilia, 
+  currency.USD price
+}
+(
+  string text = item + " " + price.format(),
+  memorabilia += text
+)
+
+query format_stock(stock:sale_format)

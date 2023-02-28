@@ -1,0 +1,25 @@
+include "agriculture-land.taq"
+include "surface-land.taq"
+
+template agri_20y
+(
+  double agri_change = Y2010 - Y1990, 
+  country ? agri_change > 1.0
+)
+
+flow surface_area_increase
+(
+  country ? agri_20y.country,
+  integer surface_area = agri_20y.agri_change/
+    100.0 * surface_area_Km2
+)
+
+flow km2_to_mi2 (decimal mi2, mi2 = surface_area_increase.surface_area * 0.3861)
+
+scope countries
+{
+  query more_agriculture(Data : agri_20y, surface_area : surface_area_increase) 
+  query more_agriculture_mi2(Data :agri_20y, surface_area : surface_area_increase) 
+  -> (km2_to_mi2)
+}
+

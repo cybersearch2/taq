@@ -1,0 +1,20 @@
+resource lexicon(provider="lexicon.LexiconProvider")
+{
+  axiom dictionary(word, definition)
+  template in_words 
+}
+
+pattern in_words "^in[^ ]+"
+
+template in_words 
+{ 
+  string word,
+  string definition 
+}
+( 
+. word # in_words,
+  term word,
+  term definition 
+)
+
+query query_in_words(dictionary : in_words)

@@ -1,0 +1,19 @@
+$ list<term> lexicon
+
+axiom german.lexicon (Total) { "Gesamtkosten" }
+
+template charge(currency amount)
+
+flow charge_plus_gst(currency total = charge.amount * 1.1)
+
+template format_total
+{ currency total }
+(
+  string total_text = lexicon->Total + " + gst: " + total.format()
+)
+
+scope german (language="de", region="DE")
+{
+  axiom item() {"12.345,67 €"}
+  query item_query(item : charge) -> (charge_plus_gst) -> (format_total)
+}

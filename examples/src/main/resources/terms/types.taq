@@ -1,0 +1,31 @@
+axiom literals
+( 
+  Boolean, 
+  String, 
+  Integer, 
+  Double, 
+  Decimal, 
+  Currency
+)
+{    
+  true, 
+  "penguins",   
+  12345, 
+  1234e2, 
+  decimal 1234.56, 
+  currency.EUR "12.345,67 €"
+}
+
+template variables
+( 
+  Boolean, 
+  String, 
+  Integer, 
+  Double, 
+  Decimal, 
+  Currency
+)
+
+query<term> types(literals:variables)   
+           
+              

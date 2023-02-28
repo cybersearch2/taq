@@ -1,0 +1,31 @@
+axiom details1 (prefix, account) { "456448", 2 }
+axiom details2 (prefix, account) { "456445", 1 }
+axiom details3 (prefix, account) { "456443", 3 }
+ 
+
+flow map_account
+{ integer account,
+  integer i,
+  
+  axiom list accounts(account_type)
+  { "sav" }
+  { "cre" }
+  { "chq" } 
+}  
+( account_type,
+  {
+    ?: account == 1,
+    ++i,
+    ?: account == 2,
+    ++i,
+    ?: account == 3,
+    i = -1,
+    ?: false
+  },
+  ?? (i != -1) account_type = accounts[i] 
+)
+
+query<term> account1( details1: map_account ) 
+query<term> account2( details2: map_account ) 
+query<term> account3( details3: map_account ) 
+ 

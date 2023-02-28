@@ -1,0 +1,6 @@
+american_megacities(Megacity=Mexico City, Country=Mexico, Continent=North America)
+american_megacities(Megacity=Sao Paulo, Country=Brazil, Continent=South America)
+american_megacities(Megacity=New York City, Country=United States, Continent=North America)
+american_megacities(Megacity=Los Angeles, Country=United States, Continent=North America)
+american_megacities(Megacity=Buenos Aires, Country=Argentina, Continent=South America)
+american_megacities(Megacity=Rio de Janeiro, Country=Brazil, Continent=South America)

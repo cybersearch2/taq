@@ -1,0 +1,5 @@
+Lassie is a blonde dog.
+Bruiser is a brindle dog.
+Rex is a black and tan dog.
+Axel is a white dog.
+Fido is a brown dog.

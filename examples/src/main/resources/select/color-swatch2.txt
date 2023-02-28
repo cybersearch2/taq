@@ -1,0 +1,3 @@
+shade(color=aqua, 0)
+shade(color=blue, 2)
+shade(color=unknown, -1)

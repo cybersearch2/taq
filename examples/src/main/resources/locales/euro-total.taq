@@ -1,0 +1,43 @@
+export list<axiom> totals
+
+scope french (language="fr", region="FR")
+
+scope german (language="de", region="DE")
+
+scope belgium_fr (language="fr", region="BE")
+
+flow charge_plus_tax
+{
+  double percent,
+  currency amount,
+  currency total_amount,
+  select lexicon
+    (locale, total, tax)
+    {
+    ? "de_DE": "Gesamtkosten", "Steuer"
+    ? "fr_FR": "le total", "impôt"
+    ? "fr_BE": "le total", "impôt"
+    }
+} 
+(
+  percent = map scope.region {
+	      ? "DE": 18.0
+		  ? "FR": 15.0
+		  ? "BE": 11.0 },
+  total_amount = amount * (1.0 + percent / 100),  
+  locale = scope.locale,
+  flow lexicon(locale = scope.locale) {
+       totals += axiom {
+        Total = total + " " + total_amount.format(), 
+        Tax = percent.format() + "% " + tax,
+        Locale = locale }
+  }
+)
+
+query de_item_query
+  ( german.charge_plus_tax )
+query fr_item_query
+  ( french.charge_plus_tax )
+query be_fr_item_query
+  ( belgium_fr.charge_plus_tax )
+  

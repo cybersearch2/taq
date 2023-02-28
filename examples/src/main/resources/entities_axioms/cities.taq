@@ -1,0 +1,30 @@
+resource cities (database="db/cities")
+{ 
+   template city -> "entities_axioms.City"
+}
+(
+  cities.set(user="sa", password="secret?"),
+  cities.drop_tables()
+)
+
+template city
+(
+  string name,
+  integer altitude
+)
+
+query<axiom> cities (city_altitude : city)
+
+axiom list city_altitude(name, altitude) 
+    {"bilene", 1718}
+    {"addis ababa", 8000}
+    {"denver", 5280}
+    {"flagstaff", 6970}
+    {"jacksonville", 8}
+    {"leadville", 10200}
+    {"madrid", 1305}
+    {"richmond",19}
+    {"spokane", 1909}
+    {"wichita", 1305}  
+
+    

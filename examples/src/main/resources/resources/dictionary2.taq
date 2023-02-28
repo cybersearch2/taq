@@ -1,0 +1,32 @@
+axiom starting_with()
+{
+  "in", "im"
+}
+
+resource lexicon(provider="lexicon.LexiconProvider")
+{
+  axiom dictionary(word, definition)
+}
+(
+  lexicon.auto(false)
+)
+
+flow i_words 
+{ list<term> search_for = list starting_with }
+( 
+  cursor words(lexicon),
+  i = 0,
+  {
+    ? fact search_for[i],
+    description = "\nWords starting with \"" + search_for[i] + "\"",
+    print(description),
+    lexicon.set(filter = search_for[i++]),
+    lexicon.open(),
+    list<term> item,
+    { ?? (item = words++) 
+        print(item->word, " = ", item->definition) },
+    lexicon.close()
+  }
+)
+
+query query_in_words(i_words)

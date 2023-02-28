@@ -1,0 +1,27 @@
+$ list<term> lexicon
+
+axiom german.lexicon 
+  ( Total)
+  {"Gesamtkosten"}
+  
+axiom french.lexicon 
+  ( Total)
+  {"le total"}
+ 
+template format_total
+{ currency amount }
+(
+. amount *= 1.1,
+  string total_text = 
+    lexicon->Total + 
+    " + tax: " + 
+    amount.format()
+)
+
+scope german (language="de", region="DE") {
+  query<term> item_query(item : format_total)
+}
+
+scope french (language="fr", region="FR") {
+  query<term> item_query(item : format_total)
+}

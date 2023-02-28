@@ -1,0 +1,23 @@
+flow shade
+{
+  select swatch 
+  (rgb,      color,   red, green, blue )
+  {
+  ? 0x00FFFF: "aqua",    0, 255, 255
+  ? 0x000000: "black",   0,   0,   0
+  ? 0x0000FF: "blue",    0,   0, 255
+  ? 0xFFFFFF: "white", 255, 255, 255
+  ?? true:    "unknown", 0,   0,   0
+  }
+}
+(
+  rgb,
+  string color,
+  integer red,
+  integer green,
+  integer blue,
+. flow swatch(rgb),
+  index = swatch.index()
+)
+
+query<axiom> query_color(RGB:shade)

@@ -1,0 +1,48 @@
+axiom list surface_area
+    (country,surface_area, unit) 
+    {"Antigua and Barbuda","440.00","km2"}
+    {"Australia","2,988,885.00","mi2"}
+    {"Bahamas","13,880.00","km2"}
+    {"Bangladesh","144,000.00","km2"}
+    {"Barbados","430.00","km2"}
+    {"Belize","22,970.00","km2"}
+    {"Botswana","581,730.00","km2"}
+    {"Brunei","5,770.00","km2"}
+    {"Cameroon","475,440.00","km2"}
+    {"Canada","9,984,670.00","km2"}
+    {"Cyprus","9,250.00","km2"}
+    {"Dominica","750.00","km2"}
+    {"Fiji","18,270.00","km2"}
+    {"Ghana","238,540.00","km2"}
+    {"Grenada","340.00","km2"}
+    {"Guyana","214,970.00","km2"}
+    {"India","3,287,260.00","km2"}
+    {"Jamaica","10,990.00","km2"}
+    {"Kiribati","810.00","km2"}
+    {"Lesotho","30,360.00","km2"}
+    {"Malawi","118,480.00","km2"}
+    {"Malaysia","330,800.00","km2"}
+    {"Malta","320.00","km2"}
+    {"Mauritius","2,040.00","km2"}
+    {"Mozambique","799,380.00","km2"}
+    {"Namibia","824,290.00","km2"}
+    {"New Zealand","103,363","mi2"}
+    {"Pakistan","796,100.00","km2"}
+    {"Papua New Guinea","462,840.00","km2"}
+    {"Rwanda","26,340.00","km2"}
+    {"Saint Kitts and Nevis","260.00","km2"}
+    {"Saint Lucia","620.00","km2"}
+    {"Saint Vincent and the Grenadines","390.00","km2"}
+    {"Samoa","2,840.00","km2"}
+    {"Seychelles","460.00","km2"}
+    {"Sierra Leone","71,740.00","km2"}
+    {"Solomon Islands","28,900.00","km2"}
+    {"Sri Lanka","65,610.00","km2"}
+    {"Swaziland","17,360.00","km2"}
+    {"Tonga","750.00","km2"}
+    {"Trinidad and Tobago","5,130.00","km2"}
+    {"Tuvalu","30.00","km2"}
+    {"Uganda","241,550.00","km2"}
+    {"United Kingdom","243,610.00","km2"}
+    {"Vanuatu","12,190.00","km2"}
+    {"Zambia","752,610.00","km2"}

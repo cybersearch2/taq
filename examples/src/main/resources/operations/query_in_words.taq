@@ -1,0 +1,11 @@
+include "i-words.taq"
+
+pattern in_words "^in[^ ]+"
+
+template in_words 
+( 
+  word # in_words,
+  definition 
+)
+
+query<axiom> query_in_words(i_words : in_words)

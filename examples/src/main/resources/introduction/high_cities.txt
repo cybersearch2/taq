@@ -1,0 +1,4 @@
+high_city(city=addis ababa, altitude=8000)
+high_city(city=denver, altitude=5280)
+high_city(city=flagstaff, altitude=6970)
+high_city(city=leadville, altitude=10200)

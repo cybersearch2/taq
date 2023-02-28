@@ -1,0 +1,4 @@
+stamp_duty_payable(100077, USD3,789.00, bracket=0, payable=USD20.00)
+stamp_duty_payable(100078, USD123,458.00, bracket=5, payable=USD3,768.32)
+stamp_duty_payable(100079, USD55,876.33, bracket=6, payable=USD1,285.67)
+stamp_duty_payable(100080, USD1,245,890.00, bracket=1, payable=USD62,353.95)

@@ -1,0 +1,15 @@
+template empty_list_demo
+{
+  list<axiom> high_cities,
+  cursor city(high_cities)
+}
+(
+  value = city,
+  backward = -city,
+  inc = city++,
+  dec = city--,
+  index = city.index(),
+  isFact = fact city
+) 
+
+query<term> empty_list(empty_list_demo) 

@@ -1,0 +1,23 @@
+boolean is_vaxxed = true
+
+template vaxxed 
+(
+. is_vaxxed,
+  name
+)
+
+query<axiom> vaxxed_patients(patients:vaxxed)
+query<axiom> vaxxed_staff(staff:vaxxed)
+query<axiom> vaxxed_contacts(contacts:vaxxed)
+
+axiom list patients(name, is_vaxxed) 
+{ "John", "false" }
+{ "Caroline", "true" }
+
+axiom list staff(name, is_vaxxed) 
+{ "Paul", "yes" }
+{ "Judy", "no" }
+
+axiom list contacts(name, is_vaxxed) 
+{ "Simon", 1 }
+{ "Jill", 0 }

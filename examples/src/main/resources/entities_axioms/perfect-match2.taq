@@ -1,0 +1,48 @@
+resource star_people 
+  (database="db/star-people", type="H2") {
+    template apply_age_rating 
+      -> "entities_axioms.StarPerson"
+  }
+  (
+    star_people.set(user="sa", password="secret?"),
+    star_people.drop_tables(),
+    star_people.log_to_console()
+  )
+
+axiom list person 
+             (name, sex, age, starsign)
+             {"John", "m", 23, "gemini"} 
+             {"Sue", "f", 19, "cancer"} 
+             {"Sam", "m", 34, "scorpio"} 
+             {"Jenny", "f", 28, "gemini"} 
+             {"Andrew", "m", 26, "virgo"} 
+             {"Alice", "f", 20, "pisces"} 
+             {"Ingrid", "f", 23, "cancer"} 
+             {"Jack", "m", 32, "pisces"} 
+             {"Sonia", "f", 33, "gemini"} 
+             {"Alex", "m", 22, "aquarius"} 
+             {"Jill", "f", 33, "cancer"} 
+             {"Fiona", "f", 29, "gemini"} 
+             {"Melissa", "f", 30, "virgo"} 
+             {"Tom", "m", 22, "cancer"} 
+             {"Bill", "m", 19, "virgo"}
+
+template apply_age_rating
+{
+  string name,
+  integer age,
+  string starsign
+}
+(
+  Name = name, 
+  Age = age,
+  Starsign = starsign, 
+  Rating = map age {
+		   ? >  29: 0.3
+		   ? >  25: 0.6
+		   ? >= 20: 1.0
+		   ? <= 19: NaN },
+  Timestamp = now()
+)
+
+query star_people(person:apply_age_rating)

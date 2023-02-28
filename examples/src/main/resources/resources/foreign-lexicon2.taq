@@ -1,0 +1,23 @@
+resource german_colors : "xstream" (
+  provider="au.com.cybersearch2.taq.provider.FileProviderFactory")
+{ template german.colors }
+(
+  german_colors.set(filename="DE")
+)
+
+resource french_colors : "xstream" (
+  provider="au.com.cybersearch2.taq.provider.FileProviderFactory")
+{ template french.colors }
+(
+  french_colors.set(filename="FR")
+)
+
+scope french (language="fr", region="FR"){}
+scope german (language="de", region="DE"){}
+
+axiom french.colors (aqua, black, blue, white)
+  {"bleu vert", "noir", "bleu", "blanc"}
+axiom german.colors (aqua, black, blue, white)
+  {"Wasser", "schwarz", "blau", "weiß"}
+   
+query color_query (german.colors:german.colors) -> (french.colors:french.colors)

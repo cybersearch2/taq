@@ -1,0 +1,105 @@
+in_words(word=inadequate, is=not sufficient to meet a need)
+in_words(word=incentive, is=a positive motivational influence)
+in_words(word=incidence, is=the relative frequency of occurrence of something)
+in_words(word=incident, is=a public disturbance)
+in_words(word=incidentally, is=of a minor or subordinate nature)
+in_words(word=inclined, is=at an angle to the horizontal or vertical position)
+in_words(
+ word=incompetence,
+ is=lack of physical or intellectual ability or qualifications
+)
+in_words(word=inconsistent, is=displaying a lack of consistency)
+in_words(word=inconvenient, is=not suited to your comfort, purpose or needs)
+in_words(word=indefinitely, is=to an indefinite extent; for an indefinite time)
+in_words(
+ word=indicator,
+ is=a device for showing the operating condition of some system
+)
+in_words(word=indifferent, is=showing no care or concern in attitude or action)
+in_words(word=indigenous, is=originating where it is found)
+in_words(word=indulge, is=enjoy to excess)
+in_words(word=inefficient, is=not producing desired results; wasteful)
+in_words(word=inept, is=generally incompetent and ineffectual)
+in_words(word=inevitable, is=incapable of being avoided or prevented)
+in_words(word=inexpensive, is=relatively low in price or charging low prices)
+in_words(word=infamous, is=known widely and usually unfavorably)
+in_words(
+ word=infinite,
+ is=having no limits or boundaries in time or space or extent or magnitude
+)
+in_words(
+ word=influence,
+ is=a power to affect persons or events especially power based on prestige etc
+)
+in_words(word=influential, is=having or exercising influence or power)
+in_words(word=influx, is=the process of flowing in)
+in_words(word=ingenious, is=showing inventiveness and skill)
+in_words(
+ word=inherent,
+ is=in the nature of something though not readily apparent
+)
+in_words(
+ word=injunction,
+ is= {law } a judicial remedy issued in order to prohibit a party from doing or continuing to do a certain activity
+)
+in_words(word=inland, is=towards or into the interior of a region)
+in_words(
+ word=insight,
+ is=the clear  {and often sudden } understanding of a complex situation
+)
+in_words(word=insistence, is=the state of demanding notice or attention)
+in_words(word=inspector, is=a high ranking police officer)
+in_words(word=instance, is=an occurrence of something)
+in_words(word=instant, is=a very short time)
+in_words(
+ word=insufficient,
+ is=of a quantity not able to fulfill a need or requirement
+)
+in_words(word=integral, is=essential to completeness; lacking nothing)
+in_words(word=integrity, is=moral soundness)
+in_words(word=intellectual, is=appealing to or using the intellect)
+in_words(
+ word=intelligence,
+ is=the ability to comprehend; to understand and profit from experience
+)
+in_words(
+ word=intensive,
+ is=characterized by a high degree or intensity; often used as a combining form
+)
+in_words(
+ word=intention,
+ is=an act of intending; a volition that you intend to carry out
+)
+in_words(word=interact, is=act together or towards others or with others)
+in_words(
+ word=interim,
+ is=the time between one event, process, or period and another
+)
+in_words(
+ word=intermediate,
+ is=lying between two extremes in time or space or state
+)
+in_words(
+ word=intervene,
+ is=get involved, so as to alter or hinder an action, or through force or threat of force
+)
+in_words(
+ word=intervention,
+ is=the act of intervening  {as to mediate a dispute, etc. }
+)
+in_words(word=intimacy, is=close or warm friendship)
+in_words(word=intricate, is=having many complexly arranged elements; elaborate)
+in_words(word=invasion, is=any entry into an area not previously occupied)
+in_words(
+ word=inventive,
+ is= {used of persons or artifacts } marked by independence and creativity in thought or action
+)
+in_words(word=investigator, is=a police officer who investigates crimes)
+in_words(
+ word=investor,
+ is=someone who commits capital in order to gain financial returns
+)
+in_words(word=invincible, is=incapable of being overcome or subdued)
+in_words(word=invoke, is=cite as an authority; resort to)
+in_words(word=involuntary, is=not subject to the control of the will)
+in_words(word=involve, is=engage as a participant)

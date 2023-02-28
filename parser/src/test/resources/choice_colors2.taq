@@ -1,0 +1,20 @@
+select swatch
+  (rgb,  color,     red, green, blue)
+{
+  ? 0x00FFFF: "aqua",  0,   255,   255
+  ? 0x000000: "black", 0,   0,     0 
+  ? 0x0000FF: "blue",  0,   0,     255
+  ? 0xFFFFFF: "white", 255, 255,   255
+}
+
+flow shader
+(
+  rgb,
+  color,   
+  red, green, blue,
+. axiom item = swatch(rgb),
+  ? fact item,
+  index = swatch.index()
+)
+
+query color_query (shade : shader)

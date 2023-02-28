@@ -1,0 +1,20 @@
+include "mega_city.taq"
+
+select population
+(Population,        Group)
+{
+  ? >= "30,000,000": "mega"
+  ? >= "20,000,000": "huge"
+  ? <  "20,000,000": "large"
+}
+
+flow group
+{ decimal Population }
+(
+. flow population(Population),
+  population = Population ,
+  group = Group,
+  index = population.index()
+)
+
+query<axiom> group_query (mega_city:group)

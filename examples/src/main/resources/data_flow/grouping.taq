@@ -1,0 +1,30 @@
+include "mega_city.taq"
+
+axiom list continents(continent)
+  { "Asia" }
+  { "Africa" }
+  { "Europe" }
+  { "South America" }
+  { "North America" }
+
+
+template group 
+(
+  continent
+) 
+
+template group_by_continent 
+{ integer Population }
+(
+  continent ? Continent,
+  city = Megacity, 
+  country = Country, 
+  rank = Rank, 
+  population = Population.format()
+) 
+
+query<axiom> mega_cities_by_continent 
+(
+  continents : group, 
+  mega_city : group_by_continent
+) 
